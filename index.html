@@ -204,7 +204,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
       <h2 id="pf-h">Performance <small>ft · kt · °C · inHg</small></h2>
       <div class="body">
         <div class="icao-row">
-          <div class="field"><label for="icao">Departure airport (ICAO code)</label><input id="icao" type="text" maxlength="4" autocomplete="off" spellcheck="false" placeholder="KSFB"></div>
+          <div class="field"><label for="icao">Departure airport (ICAO code)</label><input id="icao" type="text" maxlength="4" autocomplete="off" spellcheck="false" placeholder="KFPR"></div>
           <button type="button" id="btnMetar">Get METAR</button>
           <div class="field"><label for="rwySel">Runway</label><select id="rwySel"><option value="">— search first —</option></select></div>
         </div>
@@ -300,8 +300,8 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
   <footer>Flight preparation aid only. The aircraft POH/AFM is the reference, and the pilot in command remains responsible for the decision.</footer>
 </div>
 
-<script src="aircraft.js?v=202610270103"></script>
-<script src="performance.js?v=202610270103"></script>
+<script src="aircraft.js?v=202610270111"></script>
+<script src="performance.js?v=202610270111"></script>
 <script>
 (function () {
   const DEFAULT_PARAMS = {
@@ -360,9 +360,11 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
     (u) => "https://api.codetabs.com/v1/proxy/?quest=" + encodeURIComponent(u)
   ];
-  async function getJSON(url) {
+  const HOME = "KFPR";
+  const HOME_DATA = "https://raw.githubusercontent.com/Matthieumdb/P2010/metar-data/";
+  async function getJSON(url, direct) {
     let last;
-    for (const r of RELAYS) {
+    for (const r of direct ? [RELAYS[0]] : RELAYS) {
       try {
         const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 8000);
         const res = await fetch(r(url), { signal: ctl.signal, cache: "no-store" });
@@ -410,11 +412,16 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
   async function fetchWx() {
     const icao = $("icao").value.trim().toUpperCase();
     $("icao").value = icao;
-    if (!/^[A-Z0-9]{3,4}$/.test(icao)) { status("Enter a 4-letter ICAO code, for example KSFB or EGLL.", true); return; }
+    if (!/^[A-Z0-9]{3,4}$/.test(icao)) { status("Enter a 4-letter ICAO code, for example KFPR.", true); return; }
     status("Looking up " + icao + "…");
     $("btnMetar").disabled = true;
     const base = "https://aviationweather.gov/api/data/";
-    const [apt, met] = await Promise.allSettled([
+    // Home field: weather published every 10 min by the repo's GitHub Action (same data, no relay needed).
+    const home = HOME_DATA + icao;
+    const [apt, met] = await Promise.allSettled(icao === HOME ? [
+      getJSON(home + "-airport.json?t=" + Date.now(), true).catch(() => getJSON(base + "airport?ids=" + icao + "&format=json")),
+      getJSON(home + "-metar.json?t=" + Date.now(), true).catch(() => getJSON(base + "metar?ids=" + icao + "&format=json&hours=3"))
+    ] : [
       getJSON(base + "airport?ids=" + icao + "&format=json"),
       getJSON(base + "metar?ids=" + icao + "&format=json&hours=3")
     ]);
@@ -468,7 +475,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     if (!txt) { $("metarParsed").textContent = ""; return; }
     const m = parseMetar(txt); const bits = [];
     if (m.wspd !== undefined) {
-      if (m.wdir !== null && m.wdir !== undefined) $("wdir").value = m.wdir;
+      $("wdir").value = m.vrb ? "" : m.wdir;
       $("wspd").value = m.wspd; $("wgst").value = m.wgst;
       bits.push(`wind ${m.vrb ? "VRB" : m.wdir + "°"}/${m.wspd} kt${m.wgst ? " G" + m.wgst : ""}`);
     }
@@ -560,7 +567,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     // Wind corrections use whole knots, as on the correction key (9 kt × 33 ft).
     const hwKt = hw === null ? 0 : Math.round(Math.abs(hw));
     function corr(kind) {
-      if (hw === null) return { v: 0, ok: true };
+      if (hw === null) return { v: null, ok: false };
       if (!tail) { const f = kind === "to" ? P.toHw : P.ldHw; return { v: -(f ?? 0) * hwKt, ok: f !== null }; }
       const f = kind === "to" ? P.toTw : P.ldTw; return { v: f === null ? null : f * hwKt, ok: f !== null };
     }
@@ -634,8 +641,9 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
       if (P.fuelMax && n0("fuelLb") > P.fuelMax) C.push(["nogo", `Fuel ${fmt(n0("fuelLb"), 0)} lbs > ${P.fuelMax} lbs usable`]);
       C.push(ldMacOk ? ["go", `Landing CG ${fmt(ldMac, 1)} % within ${P.macMin}–${P.macMax} %`] : ["nogo", `Landing CG ${fmt(ldMac, 1)} % outside limits ${P.macMin}–${P.macMax} %`]);
     }
+    if (hw === null) C.push(["warn", `Wind correction not applied: ${wdir === null ? "wind direction" : rwy === null ? "runway heading" : "wind speed"} missing (fetch the METAR and pick a runway, or fill them in)`]);
     chartMsgs.forEach((m) => C.push(["warn", m.charAt(0).toUpperCase() + m.slice(1)]));
-    if (tail && (cTO.v === null || cLD.v === null)) C.push(["warn", "Tailwind: enter the POH tailwind correction in the parameters"]);
+    if (hw !== null && tail && (cTO.v === null || cLD.v === null)) C.push(["warn", "Tailwind: enter the POH tailwind correction in the parameters"]);
     if (todr !== null && toda !== null) C.push(todrBad ? ["nogo", `TODR ${fmtInt(todr)} ft > TODA ${toda} ft`] : ["go", `TODR ${fmtInt(todr)} ft ≤ TODA ${toda} ft`]);
     if (ldr !== null && lda !== null) C.push(ldrBad ? ["nogo", `LDR ${fmtInt(ldr)} ft > LDA ${lda} ft`] : ["go", `LDR ${fmtInt(ldr)} ft ≤ LDA ${lda} ft`]);
     if (xw !== null) {
@@ -697,7 +705,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
   const startIdx = Math.max(0, FLEET.findIndex((a) => a.immat === saved.immat));
   if (FLEET.length) $("acSel").value = String(startIdx);
   selectAircraft(FLEET.length ? startIdx : -1);
-  if (saved.icao) $("icao").value = saved.icao;
+  $("icao").value = saved.icao || HOME;
 
   document.addEventListener("input", (e) => {
     if (e.target.id === "metar") applyMetar();
@@ -714,6 +722,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
   $("btnClear").addEventListener("click", () => { INPUT_IDS.forEach((id) => $(id).value = ""); RUNWAYS = []; fillRunways(); $("metarParsed").textContent = ""; status(""); compute(); });
   $("btnReset").addEventListener("click", () => { selectAircraft(+$("acSel").value); compute(); });
   compute();
+  fetchWx();
 })();
 </script>
 </body>
