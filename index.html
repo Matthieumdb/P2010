@@ -470,6 +470,14 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     }
     throw last || new Error("network");
   }
+  // US stations: the National Weather Service API allows browser calls, so it gives a live METAR
+  // when the GitHub Action copy is late (scheduled Actions can lag by hours).
+  async function nwsMetar(icao) {
+    const d = await getJSON("https://api.weather.gov/stations/" + icao + "/observations?limit=4", true);
+    return (d.features || []).map((f) => f.properties || {}).filter((p) => p.rawMessage)
+      .map((p) => ({ rawOb: p.rawMessage.trim(), obsTime: Math.round(Date.parse(p.timestamp) / 1000) }));
+  }
+  const newest = (list) => list.filter(Boolean).flat().filter((m) => m && m.rawOb).sort((x, y) => (y.obsTime || 0) - (x.obsTime || 0));
   let RUNWAYS = [];
   function runwayEnds(apt) {
     const out = [];
@@ -522,6 +530,9 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
       getJSON(base + "metar?ids=" + icao + "&format=json&hours=3"),
       getJSON(base + "taf?ids=" + icao + "&format=json")
     ]);
+    // Take the newest METAR among the published copy and the live NWS feed.
+    const live = /^K[A-Z0-9]{3}$/.test(icao) ? await nwsMetar(icao).catch(() => null) : null;
+    const metList = newest([met.status === "fulfilled" ? met.value : null, live]);
     TAF = { icao, data: taf.status === "fulfilled" && taf.value && taf.value.length ? taf.value[0] : null };
     $("btnMetar").disabled = false;
     const msgs = []; let err = false;
@@ -532,8 +543,8 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
       RUNWAYS = runwayEnds(a);
       msgs.push(`${(a.name || icao).trim()} · ${$("elev").value} ft · ${RUNWAYS.length} runway ends`);
     } else { RUNWAYS = []; err = true; msgs.push("Airport not found: enter elevation, runway and length manually"); }
-    if (met.status === "fulfilled" && met.value && met.value.length) {
-      const m = met.value.slice().sort((x, y) => (y.obsTime || 0) - (x.obsTime || 0))[0];
+    if (metList.length) {
+      const m = metList[0];
       $("metar").value = m.rawOb || "";
       applyMetar();
       const age = m.obsTime ? Math.round((Date.now() / 1000 - m.obsTime) / 60) : null;

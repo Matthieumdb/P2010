@@ -5,7 +5,7 @@ name: KFPR weather
 # `metar-data` branch, which the page reads from raw.githubusercontent.com.
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "4,14,24,34,44,54 * * * *"
   workflow_dispatch:
   push:
     branches: [main]
