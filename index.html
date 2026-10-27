@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>P2010 Préparation vol</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: cockpit-placard header with the go/no-go verdict, then two working panels (M&B, Performances) like the paper EFT forms, stacked on phone. */
+:root {
+  --bg: #eef1f4;
+  --panel: #ffffff;
+  --ink: #14202e;
+  --muted: #5a6878;
+  --line: #d3dae2;
+  --field: #f6f8fa;
+  --accent: #c27a00;
+  --accent-soft: #fff1d6;
+  --go: #1d7a46;
+  --go-soft: #e2f4ea;
+  --nogo: #b42318;
+  --nogo-soft: #fde8e6;
+  --warn: #9a6200;
+  --warn-soft: #fff3d9;
+  --band: #14202e;
+  --band-ink: #f2f5f8;
+  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e141b; --panel: #161e28; --ink: #e6ebf1; --muted: #93a1b1; --line: #2a3644; --field: #1c2632;
+    --accent: #f0a420; --accent-soft: #3a2a0c; --go: #4cc483; --go-soft: #12301f; --nogo: #ff7a6b; --nogo-soft: #3a1714;
+    --warn: #f0b84a; --warn-soft: #33270f; --band: #070b10; --band-ink: #e6ebf1; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e141b; --panel: #161e28; --ink: #e6ebf1; --muted: #93a1b1; --line: #2a3644; --field: #1c2632;
+  --accent: #f0a420; --accent-soft: #3a2a0c; --go: #4cc483; --go-soft: #12301f; --nogo: #ff7a6b; --nogo-soft: #3a1714;
+  --warn: #f0b84a; --warn-soft: #33270f; --band: #070b10; --band-ink: #e6ebf1; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+header.band { background: var(--band); color: var(--band-ink); }
+header.band .wrap { padding-block: 20px 18px; display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: end; justify-content: space-between; }
+.brand { display: grid; gap: 2px; }
+.brand .reg { font-family: var(--f-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+.brand h1 { font-family: var(--f-display); font-weight: 700; font-size: 34px; letter-spacing: .02em; margin: 0; line-height: 1; text-wrap: balance; }
+.brand p { margin: 4px 0 0; font-size: 13px; opacity: .75; }
+.verdict { display: flex; gap: 10px; flex-wrap: wrap; }
+.vchip { border: 1px solid rgba(255,255,255,.18); border-radius: 6px; padding: 8px 12px; min-width: 120px; }
+.vchip .k { font-family: var(--f-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; opacity: .7; }
+.vchip .v { font-family: var(--f-display); font-weight: 700; font-size: 24px; letter-spacing: .04em; line-height: 1.1; }
+.vchip.go .v { color: #5fd897; }
+.vchip.nogo .v { color: #ff8b7e; }
+.vchip.warn .v { color: #ffc65c; }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-block: 14px; }
+.toolbar .note { font-size: 13px; color: var(--muted); flex: 1 1 260px; min-width: 0; }
+button { font: 500 13px var(--f-body); border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 6px; padding: 7px 12px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+main.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: 18px; padding-bottom: 40px; }
+section.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; min-width: 0; overflow: hidden; }
+.panel > h2 { margin: 0; font-family: var(--f-display); font-weight: 600; font-size: 20px; letter-spacing: .06em; text-transform: uppercase; padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.panel > h2 small { font-family: var(--f-mono); font-size: 11px; letter-spacing: .08em; color: var(--muted); font-weight: 400; }
+.body { padding: 14px 16px 16px; display: grid; gap: 16px; }
+h3 { margin: 0; font-size: 12px; font-family: var(--f-mono); font-weight: 500; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { padding: 6px 6px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+th { font: 500 11px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+th:first-child, td:first-child { text-align: left; white-space: normal; }
+td.lbl { font-weight: 500; }
+td.lbl span { display: block; font-size: 12px; color: var(--muted); font-weight: 400; }
+td.num, .mono { font-family: var(--f-mono); }
+tr.sub td { background: var(--field); font-weight: 600; }
+tr.sub.bad td { background: var(--nogo-soft); }
+tr.deduct td.lbl { color: var(--muted); }
+
+input, select { font: 500 14px var(--f-mono); color: var(--ink); background: var(--field); border: 1px solid var(--line); border-radius: 5px; padding: 6px 8px; width: 100%; text-align: right; font-variant-numeric: tabular-nums; }
+input.w { width: 88px; }
+input.wide { text-align: left; font-family: var(--f-mono); }
+.unit { font-size: 11px; color: var(--muted); margin-left: 4px; }
+
+.fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px 12px; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field label { font-size: 12px; color: var(--muted); }
+.field .row { display: flex; align-items: center; gap: 4px; }
+
+.out { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+.cell { background: var(--field); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; min-width: 0; }
+.cell .k { font-size: 11px; color: var(--muted); font-family: var(--f-mono); letter-spacing: .06em; text-transform: uppercase; }
+.cell .v { font: 600 20px var(--f-mono); font-variant-numeric: tabular-nums; }
+.cell .s { font-size: 12px; color: var(--muted); }
+.cell.bad { background: var(--nogo-soft); border-color: var(--nogo); }
+.cell.bad .v { color: var(--nogo); }
+.cell.ok .v { color: var(--go); }
+
+.gauge { display: grid; gap: 6px; }
+.gauge svg { width: 100%; height: auto; display: block; }
+
+.checks { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.checks li { display: flex; gap: 10px; align-items: baseline; font-size: 14px; padding: 6px 10px; border-radius: 5px; background: var(--field); }
+.pill { font: 600 11px var(--f-mono); letter-spacing: .08em; padding: 2px 7px; border-radius: 4px; flex: none; }
+.pill.go { background: var(--go-soft); color: var(--go); }
+.pill.nogo { background: var(--nogo-soft); color: var(--nogo); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+
+.dist td.num { min-width: 72px; }
+.formula { font-size: 12px; color: var(--muted); font-family: var(--f-mono); }
+
+details.params { border-top: 1px solid var(--line); }
+details.params summary { cursor: pointer; padding: 12px 16px; font: 500 13px var(--f-body); color: var(--muted); }
+details.params .body { padding-top: 0; }
+.hint { font-size: 12px; color: var(--muted); margin: 0; }
+.tbc { color: var(--warn); font-size: 11px; font-family: var(--f-mono); }
+.metar-parsed { font-size: 12px; color: var(--muted); font-family: var(--f-mono); min-height: 1.2em; }
+footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header class="band">
+  <div class="wrap">
+    <div class="brand">
+      <span class="reg">Tecnam P2010 · préparation vol</span>
+      <h1>Masse &amp; centrage · Performances</h1>
+      <p>Méthode des fiches European Flight Training (M&amp;B v3, Aircraft Performance v1)</p>
+    </div>
+    <div class="verdict" id="verdict"></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="toolbar">
+    <button type="button" id="btnExample">Charger l'exemple (quiz 5 oct.)</button>
+    <button type="button" id="btnClear">Vider les saisies</button>
+    <span class="note" id="exNote">Valeurs d'exemple : quiz du 5 octobre et sa correction. Remplacez-les par les vôtres.</span>
+  </div>
+
+  <main class="grid">
+    <!-- MASS & BALANCE -->
+    <section class="panel" aria-labelledby="mb-h">
+      <h2 id="mb-h">Masse &amp; centrage <small>lbs · m · lbs·m</small></h2>
+      <div class="body">
+        <div class="tbl-wrap">
+          <table id="mbTable">
+            <thead><tr><th>Poste</th><th>Poids</th><th>Bras</th><th>Moment</th></tr></thead>
+            <tbody>
+              <tr><td class="lbl">Masse à vide de base<span>poids et moment de la fiche de pesée</span></td>
+                <td><input class="w" id="bew" type="number" step="any" inputmode="decimal"></td>
+                <td class="num" id="bewArm">—</td>
+                <td><input class="w" id="bewMom" type="number" step="any" inputmode="decimal"></td></tr>
+              <tr><td class="lbl">Pilote</td><td><input class="w" id="pilot" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armFront"></td><td class="num" id="m_pilot"></td></tr>
+              <tr><td class="lbl">Copilote</td><td><input class="w" id="copilot" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armFront"></td><td class="num" id="m_copilot"></td></tr>
+              <tr><td class="lbl">Passager 1</td><td><input class="w" id="pax1" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armRear"></td><td class="num" id="m_pax1"></td></tr>
+              <tr><td class="lbl">Passager 2</td><td><input class="w" id="pax2" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armRear"></td><td class="num" id="m_pax2"></td></tr>
+              <tr><td class="lbl">Bagages</td><td><input class="w" id="bag" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armBag"></td><td class="num" id="m_bag"></td></tr>
+              <tr><td class="lbl">Carburant<span>en gallons US · <b id="fuelLbs">0</b> lbs</span></td><td><input class="w" id="fuelGal" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armFuel"></td><td class="num" id="m_fuel"></td></tr>
+              <tr class="deduct"><td class="lbl">− Roulage<span>gal · <b id="taxiLbs">0</b> lbs</span></td><td><input class="w" id="taxiGal" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armFuel"></td><td class="num" id="m_taxi"></td></tr>
+              <tr class="sub" id="rowTO"><td class="lbl">Décollage</td><td class="num" id="toW"></td><td class="num" id="toArm"></td><td class="num" id="toMom"></td></tr>
+              <tr class="deduct"><td class="lbl">− Carburant consommé en vol<span>gal · <b id="tripLbs">0</b> lbs</span></td><td><input class="w" id="tripGal" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armFuel"></td><td class="num" id="m_trip"></td></tr>
+              <tr class="sub" id="rowLDG"><td class="lbl">Atterrissage</td><td class="num" id="ldW"></td><td class="num" id="ldArm"></td><td class="num" id="ldMom"></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="out">
+          <div class="cell" id="cTOW"><div class="k">Masse décollage</div><div class="v" id="oTOW">—</div><div class="s" id="sTOW"></div></div>
+          <div class="cell" id="cTOMAC"><div class="k">Centrage déco</div><div class="v" id="oTOMAC">—</div><div class="s">% MAC</div></div>
+          <div class="cell" id="cLW"><div class="k">Masse atterrissage</div><div class="v" id="oLW">—</div><div class="s" id="sLW"></div></div>
+          <div class="cell" id="cLMAC"><div class="k">Centrage atterro</div><div class="v" id="oLMAC">—</div><div class="s">% MAC</div></div>
+        </div>
+
+        <div class="gauge">
+          <h3>Position du centrage</h3>
+          <svg id="cgSvg" viewBox="0 0 520 74" role="img" aria-label="Centrage au décollage et à l'atterrissage par rapport aux limites"></svg>
+          <p class="formula">% MAC = bras / <span data-val="macDiv"></span> × 100 · limites <span data-val="macMin"></span>–<span data-val="macMax"></span> %</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- PERFORMANCE -->
+    <section class="panel" aria-labelledby="pf-h">
+      <h2 id="pf-h">Performances <small>ft · kt · °C · inHg</small></h2>
+      <div class="body">
+        <div class="field">
+          <label for="metar">METAR (collez-le : vent, température et calage sont extraits)</label>
+          <input class="wide" id="metar" type="text" autocomplete="off" spellcheck="false" placeholder="LFPN 271200Z 22018G20KT 9999 24/24 Q1015">
+          <div class="metar-parsed" id="metarParsed"></div>
+        </div>
+
+        <div>
+          <h3 style="margin-bottom:8px">Conditions</h3>
+          <div class="fields">
+            <div class="field"><label for="elev">Altitude terrain</label><div class="row"><input id="elev" type="number" step="any" inputmode="decimal"><span class="unit">ft</span></div></div>
+            <div class="field"><label for="alt">Calage altimètre</label><div class="row"><input id="alt" type="number" step="0.01" inputmode="decimal"><span class="unit">inHg</span></div></div>
+            <div class="field"><label for="oat">Température</label><div class="row"><input id="oat" type="number" step="any" inputmode="decimal"><span class="unit">°C</span></div></div>
+            <div class="field"><label for="wdir">Vent direction</label><div class="row"><input id="wdir" type="number" step="any" inputmode="decimal"><span class="unit">°</span></div></div>
+            <div class="field"><label for="wspd">Vent force</label><div class="row"><input id="wspd" type="number" step="any" inputmode="decimal"><span class="unit">kt</span></div></div>
+            <div class="field"><label for="wgst">Rafales</label><div class="row"><input id="wgst" type="number" step="any" inputmode="decimal"><span class="unit">kt</span></div></div>
+            <div class="field"><label for="rwy">Cap de piste</label><div class="row"><input id="rwy" type="number" step="any" inputmode="decimal"><span class="unit">°</span></div></div>
+            <div class="field"><label for="toda">TODA</label><div class="row"><input id="toda" type="number" step="any" inputmode="decimal"><span class="unit">ft</span></div></div>
+            <div class="field"><label for="lda">LDA</label><div class="row"><input id="lda" type="number" step="any" inputmode="decimal"><span class="unit">ft</span></div></div>
+          </div>
+        </div>
+
+        <div class="out">
+          <div class="cell"><div class="k">Alt. pression</div><div class="v" id="oPA">—</div><div class="s">ft</div></div>
+          <div class="cell"><div class="k">Alt. densité</div><div class="v" id="oDA">—</div><div class="s" id="sDA">ft</div></div>
+          <div class="cell" id="cHW"><div class="k" id="kHW">Vent de face</div><div class="v" id="oHW">—</div><div class="s" id="sHW">kt</div></div>
+          <div class="cell" id="cXW"><div class="k">Vent traversier</div><div class="v" id="oXW">—</div><div class="s" id="sXW">kt</div></div>
+        </div>
+
+        <div>
+          <h3 style="margin-bottom:8px">Distances</h3>
+          <p class="hint" style="margin-bottom:8px">Saisissez les valeurs lues dans les abaques du manuel de vol (à la masse, l'altitude pression et la température du jour). La correction de vent et le coefficient de sécurité sont appliqués ici.</p>
+          <div class="tbl-wrap">
+            <table class="dist">
+              <thead><tr><th>Distance</th><th>Abaque</th><th>Corr. vent</th><th>Corrigée</th><th>× CS</th><th>Dispo.</th></tr></thead>
+              <tbody>
+                <tr><td class="lbl">Roulage décollage</td><td><input class="w" id="toGR" type="number" step="any" inputmode="decimal"></td><td class="num" id="toGRc"></td><td class="num" id="toGRr"></td><td class="num">—</td><td class="num">—</td></tr>
+                <tr class="sub" id="rowTODR"><td class="lbl">Décollage 50 ft (TODR)</td><td><input class="w" id="toD" type="number" step="any" inputmode="decimal"></td><td class="num" id="toDc"></td><td class="num" id="toDr"></td><td class="num" id="todrOut"></td><td class="num" id="todaOut"></td></tr>
+                <tr><td class="lbl">Roulage atterrissage</td><td><input class="w" id="ldGR" type="number" step="any" inputmode="decimal"></td><td class="num" id="ldGRc"></td><td class="num" id="ldGRr"></td><td class="num">—</td><td class="num">—</td></tr>
+                <tr class="sub" id="rowLDR"><td class="lbl">Atterrissage 50 ft (LDR)</td><td><input class="w" id="ldD" type="number" step="any" inputmode="decimal"></td><td class="num" id="ldDc"></td><td class="num" id="ldDr"></td><td class="num" id="ldrOut"></td><td class="num" id="ldaOut"></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="formula" style="margin-top:8px" id="distFormula"></p>
+        </div>
+
+        <div>
+          <h3 style="margin-bottom:8px">Vérifications</h3>
+          <ul class="checks" id="checks"></ul>
+        </div>
+      </div>
+
+      <details class="params" id="params">
+        <summary>Paramètres avion et méthode de calcul</summary>
+        <div class="body">
+          <p class="hint">Valeurs reprises des fiches de l'école. Celles marquées <span class="tbc">à confirmer</span> doivent être vérifiées dans le manuel de vol de votre avion.</p>
+          <div class="fields">
+            <div class="field"><label for="armFront">Bras sièges avant</label><div class="row"><input id="armFront" type="number" step="any"><span class="unit">m</span></div></div>
+            <div class="field"><label for="armRear">Bras sièges arrière</label><div class="row"><input id="armRear" type="number" step="any"><span class="unit">m</span></div></div>
+            <div class="field"><label for="armBag">Bras bagages</label><div class="row"><input id="armBag" type="number" step="any"><span class="unit">m</span></div></div>
+            <div class="field"><label for="armFuel">Bras carburant</label><div class="row"><input id="armFuel" type="number" step="any"><span class="unit">m</span></div></div>
+            <div class="field"><label for="fuelDens">Densité carburant</label><div class="row"><input id="fuelDens" type="number" step="any"><span class="unit">lbs/gal</span></div></div>
+            <div class="field"><label for="mtow">Masse max décollage</label><div class="row"><input id="mtow" type="number" step="any"><span class="unit">lbs</span></div></div>
+            <div class="field"><label for="mlw">Masse max atterrissage <span class="tbc">à confirmer</span></label><div class="row"><input id="mlw" type="number" step="any"><span class="unit">lbs</span></div></div>
+            <div class="field"><label for="macDiv">Diviseur % MAC</label><div class="row"><input id="macDiv" type="number" step="any"><span class="unit">m</span></div></div>
+            <div class="field"><label for="macMin">Limite avant</label><div class="row"><input id="macMin" type="number" step="any"><span class="unit">% MAC</span></div></div>
+            <div class="field"><label for="macMax">Limite arrière</label><div class="row"><input id="macMax" type="number" step="any"><span class="unit">% MAC</span></div></div>
+            <div class="field"><label for="toHw">Déco : vent de face</label><div class="row"><input id="toHw" type="number" step="any"><span class="unit">ft/kt</span></div></div>
+            <div class="field"><label for="toTw">Déco : vent arrière <span class="tbc">à confirmer</span></label><div class="row"><input id="toTw" type="number" step="any" placeholder="POH"><span class="unit">ft/kt</span></div></div>
+            <div class="field"><label for="ldHw">Atterro : vent de face</label><div class="row"><input id="ldHw" type="number" step="any"><span class="unit">ft/kt</span></div></div>
+            <div class="field"><label for="ldTw">Atterro : vent arrière <span class="tbc">à confirmer</span></label><div class="row"><input id="ldTw" type="number" step="any" placeholder="POH"><span class="unit">ft/kt</span></div></div>
+            <div class="field"><label for="sfTO">CS décollage</label><div class="row"><input id="sfTO" type="number" step="any"><span class="unit">×</span></div></div>
+            <div class="field"><label for="sfLD">CS atterrissage</label><div class="row"><input id="sfLD" type="number" step="any"><span class="unit">×</span></div></div>
+            <div class="field"><label for="xwMax">Vent traversier max <span class="tbc">à confirmer</span></label><div class="row"><input id="xwMax" type="number" step="any" placeholder="POH"><span class="unit">kt</span></div></div>
+            <div class="field"><label for="isaMode">Écart ISA calculé avec</label>
+              <select id="isaMode"><option value="sl">ISA 15 °C (comme la fiche)</option><option value="pa">ISA à l'altitude pression</option></select></div>
+            <div class="field"><label for="gustMode">Vent utilisé</label>
+              <select id="gustMode"><option value="steady">Vent moyen (comme la fiche)</option><option value="gust">Rafales</option></select></div>
+          </div>
+          <div><button type="button" id="btnReset">Rétablir les paramètres de l'école</button></div>
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <footer>Outil d'aide à la préparation. Le manuel de vol (POH/AFM) de l'avion fait foi ; le commandant de bord reste responsable de la décision.</footer>
+</div>
+
+<script>
+(function () {
+  const DEFAULT_PARAMS = {
+    armFront: 0.92, armRear: 3.47, armBag: 5.25, armFuel: 2.0, fuelDens: 6,
+    mtow: 2557, mlw: 2557, macDiv: 4.52, macMin: 19, macMax: 32,
+    toHw: 33, toTw: "", ldHw: 13, ldTw: "", sfTO: 1.33, sfLD: 1.43, xwMax: "",
+    isaMode: "sl", gustMode: "steady"
+  };
+  const EXAMPLE = {
+    bew: 1689, bewMom: 1820, pilot: 200, copilot: 120, pax1: 180, pax2: 0, bag: 30,
+    fuelGal: 61, taxiGal: 2, tripGal: 12,
+    metar: "22018G20KT 24/24 A2999", elev: 23, alt: 29.99, oat: 24, wdir: 220, wspd: 18, wgst: 20,
+    rwy: 280, toda: 6492, lda: 6492, toGR: 1480, toD: 2224, ldGR: 804, ldD: 1736
+  };
+  const INPUT_IDS = Object.keys(EXAMPLE);
+  const PARAM_IDS = Object.keys(DEFAULT_PARAMS);
+  const STORE = "p2010-prep-v1";
+  const $ = (id) => document.getElementById(id);
+
+  function num(id) { const v = parseFloat(String($(id).value).replace(",", ".")); return isFinite(v) ? v : null; }
+  function n0(id) { return num(id) ?? 0; }
+  function fmt(v, d = 1) { if (v === null || v === undefined || !isFinite(v)) return "—"; const r = Number(v.toFixed(d)); return String(r); }
+  function fmtInt(v) { return (v === null || !isFinite(v)) ? "—" : String(Math.round(v)); }
+
+  function setAll(obj) { for (const [k, v] of Object.entries(obj)) if ($(k)) $(k).value = v; }
+  function save() {
+    try {
+      const data = {}; [...INPUT_IDS, ...PARAM_IDS].forEach((id) => data[id] = $(id).value);
+      localStorage.setItem(STORE, JSON.stringify(data));
+    } catch (e) {}
+  }
+  function load() {
+    try { const s = localStorage.getItem(STORE); return s ? JSON.parse(s) : null; } catch (e) { return null; }
+  }
+
+  // ---------- METAR ----------
+  function parseMetar(txt) {
+    const out = {}; const t = " " + txt.toUpperCase() + " ";
+    const w = t.match(/\s(\d{3}|VRB)(\d{2,3})(?:G(\d{2,3}))?(KT|MPS)\s/);
+    if (w) {
+      const k = w[4] === "MPS" ? 1.94384 : 1;
+      out.wdir = w[1] === "VRB" ? null : +w[1];
+      out.vrb = w[1] === "VRB";
+      out.wspd = Math.round(+w[2] * k);
+      out.wgst = w[3] ? Math.round(+w[3] * k) : "";
+    } else {
+      const w2 = t.match(/\s(\d{3})(\d{2})(?:G(\d{2}))?\s/);
+      if (w2) { out.wdir = +w2[1]; out.wspd = +w2[2]; out.wgst = w2[3] ? +w2[3] : ""; }
+    }
+    const tp = t.match(/\s(M?\d{2})\/(M?\d{2})?\s/);
+    if (tp) out.oat = parseInt(tp[1].replace("M", "-"), 10);
+    const a = t.match(/\sA(\d{4})\s/);
+    if (a) out.alt = +(+a[1] / 100).toFixed(2);
+    const q = t.match(/\sQ(\d{4})\s/);
+    if (q) { out.alt = +(+q[1] * 0.0295300).toFixed(2); out.qnh = +q[1]; }
+    return out;
+  }
+  function applyMetar() {
+    const txt = $("metar").value.trim();
+    if (!txt) { $("metarParsed").textContent = ""; return; }
+    const m = parseMetar(txt); const bits = [];
+    if (m.wspd !== undefined) {
+      if (m.wdir !== null && m.wdir !== undefined) $("wdir").value = m.wdir;
+      $("wspd").value = m.wspd; $("wgst").value = m.wgst;
+      bits.push(`vent ${m.vrb ? "VRB" : m.wdir + "°"}/${m.wspd} kt${m.wgst ? " G" + m.wgst : ""}`);
+    }
+    if (m.oat !== undefined) { $("oat").value = m.oat; bits.push(`T ${m.oat} °C`); }
+    if (m.alt !== undefined) { $("alt").value = m.alt; bits.push(m.qnh ? `Q${m.qnh} = ${m.alt} inHg` : `A ${m.alt} inHg`); }
+    $("metarParsed").textContent = bits.length ? "Lu : " + bits.join(" · ") + (m.vrb ? " · vent variable : saisissez la direction la plus défavorable" : "") : "Rien de reconnu dans ce METAR.";
+  }
+
+  // ---------- CALC ----------
+  function compute() {
+    const P = {}; PARAM_IDS.forEach((id) => P[id] = (id === "isaMode" || id === "gustMode") ? $(id).value : num(id));
+    document.querySelectorAll("[data-arm]").forEach((el) => el.textContent = fmt(P[el.dataset.arm], 2));
+    document.querySelectorAll("[data-val]").forEach((el) => el.textContent = fmt(P[el.dataset.val], 2));
+
+    // M&B
+    const dens = P.fuelDens ?? 6;
+    const bew = n0("bew"), bewMom = n0("bewMom");
+    $("bewArm").textContent = bew ? fmt(bewMom / bew, 3) : "—";
+    const items = [
+      ["pilot", n0("pilot"), P.armFront], ["copilot", n0("copilot"), P.armFront],
+      ["pax1", n0("pax1"), P.armRear], ["pax2", n0("pax2"), P.armRear], ["bag", n0("bag"), P.armBag]
+    ];
+    let W = bew, M = bewMom;
+    for (const [id, w, arm] of items) { const m = w * (arm ?? 0); $("m_" + id).textContent = fmt(m, 1); W += w; M += m; }
+    const fuelL = n0("fuelGal") * dens, taxiL = n0("taxiGal") * dens, tripL = n0("tripGal") * dens;
+    $("fuelLbs").textContent = fmt(fuelL, 0); $("taxiLbs").textContent = fmt(taxiL, 0); $("tripLbs").textContent = fmt(tripL, 0);
+    const af = P.armFuel ?? 0;
+    $("m_fuel").textContent = fmt(fuelL * af, 1);
+    $("m_taxi").textContent = "−" + fmt(taxiL * af, 1);
+    $("m_trip").textContent = "−" + fmt(tripL * af, 1);
+    W += fuelL; M += fuelL * af;
+    const toW = W - taxiL, toM = M - taxiL * af;
+    const ldW = toW - tripL, ldM = toM - tripL * af;
+    const toArm = toW ? toM / toW : null, ldArm = ldW ? ldM / ldW : null;
+    const mac = (arm) => (arm !== null && P.macDiv) ? arm / P.macDiv * 100 : null;
+    const toMac = mac(toArm), ldMac = mac(ldArm);
+    $("toW").textContent = fmt(toW, 1); $("toArm").textContent = fmt(toArm, 2); $("toMom").textContent = fmt(toM, 1);
+    $("ldW").textContent = fmt(ldW, 1); $("ldArm").textContent = fmt(ldArm, 2); $("ldMom").textContent = fmt(ldM, 1);
+
+    const hasMB = bew > 0;
+    const towBad = hasMB && P.mtow && toW > P.mtow;
+    const lwBad = hasMB && P.mlw && ldW > P.mlw;
+    const inLim = (v) => v !== null && P.macMin !== null && P.macMax !== null && v >= P.macMin && v <= P.macMax;
+    // Round %MAC to 0.1 before the limit check, as the forms do.
+    const r1 = (v) => v === null ? null : Math.round(v * 10) / 10;
+    const toMacOk = inLim(r1(toMac)), ldMacOk = inLim(r1(ldMac));
+
+    $("oTOW").textContent = hasMB ? fmt(toW, 0) : "—";
+    $("sTOW").textContent = hasMB && P.mtow ? (towBad ? `+${fmt(toW - P.mtow, 0)} lbs au-dessus de ${P.mtow}` : `marge ${fmt(P.mtow - toW, 0)} lbs`) : "lbs";
+    $("oLW").textContent = hasMB ? fmt(ldW, 0) : "—";
+    $("sLW").textContent = hasMB && P.mlw ? (lwBad ? `+${fmt(ldW - P.mlw, 0)} lbs au-dessus de ${P.mlw}` : `marge ${fmt(P.mlw - ldW, 0)} lbs`) : "lbs";
+    $("oTOMAC").textContent = hasMB ? fmt(toMac, 1) : "—";
+    $("oLMAC").textContent = hasMB ? fmt(ldMac, 1) : "—";
+    setState("cTOW", hasMB, !towBad); setState("cLW", hasMB, !lwBad);
+    setState("cTOMAC", hasMB, toMacOk); setState("cLMAC", hasMB, ldMacOk);
+    $("rowTO").classList.toggle("bad", !!(hasMB && (towBad || !toMacOk)));
+    $("rowLDG").classList.toggle("bad", !!(hasMB && (lwBad || !ldMacOk)));
+    drawGauge(P, hasMB ? toMac : null, hasMB ? ldMac : null);
+
+    // Performance
+    const elev = num("elev"), alt = num("alt"), oat = num("oat");
+    const pa = (elev !== null && alt !== null) ? elev + (29.92 - alt) * 1000 : null;
+    const isa = pa === null ? null : (P.isaMode === "pa" ? 15 - 2 * pa / 1000 : 15);
+    const da = (pa !== null && oat !== null) ? pa + 120 * (oat - isa) : null;
+    $("oPA").textContent = fmtInt(pa);
+    $("oDA").textContent = fmtInt(da);
+    $("sDA").textContent = (pa !== null && oat !== null) ? `ft · ISA ${oat - isa >= 0 ? "+" : ""}${fmt(oat - isa, 1)}` : "ft";
+
+    const wdir = num("wdir"), rwy = num("rwy");
+    const spd = P.gustMode === "gust" && num("wgst") ? num("wgst") : num("wspd");
+    let hw = null, xw = null, side = "";
+    if (wdir !== null && rwy !== null && spd !== null) {
+      const ang = ((wdir - rwy) % 360 + 540) % 360 - 180; // -180..180
+      const rad = ang * Math.PI / 180;
+      hw = Math.cos(rad) * spd; xw = Math.sin(rad) * spd;
+      side = Math.abs(xw) < 0.05 ? "" : (xw > 0 ? "de droite" : "de gauche");
+      $("sXW").textContent = `kt ${side} · angle ${Math.abs(Math.round(ang))}°`;
+    } else { $("sXW").textContent = "kt"; }
+    const tail = hw !== null && hw < -0.05;
+    $("kHW").textContent = tail ? "Vent arrière" : "Vent de face";
+    $("oHW").textContent = hw === null ? "—" : fmt(Math.abs(hw), 1);
+    $("sHW").textContent = hw === null ? "kt" : `kt · vent ${P.gustMode === "gust" ? "rafales" : "moyen"} ${fmt(spd, 0)} kt`;
+    $("oXW").textContent = xw === null ? "—" : fmt(Math.abs(xw), 1);
+    const xwBad = xw !== null && P.xwMax && Math.abs(xw) > P.xwMax;
+    setState("cHW", hw !== null, !tail, true);
+    setState("cXW", xw !== null, !xwBad);
+
+    // Wind corrections use whole knots, as on the correction key (9 kt × 33 ft).
+    const hwKt = hw === null ? 0 : Math.round(Math.abs(hw));
+    function corr(kind) {
+      if (hw === null) return { v: 0, ok: true };
+      if (!tail) { const f = kind === "to" ? P.toHw : P.ldHw; return { v: -(f ?? 0) * hwKt, ok: f !== null }; }
+      const f = kind === "to" ? P.toTw : P.ldTw; return { v: f === null ? null : f * hwKt, ok: f !== null };
+    }
+    const cTO = corr("to"), cLD = corr("ld");
+    function row(inId, c, cId, rId) {
+      const base = num(inId);
+      $(cId).textContent = c.v === null ? "?" : (c.v === 0 ? "0" : (c.v > 0 ? "+" : "−") + fmt(Math.abs(c.v), 0));
+      const r = (base === null || c.v === null) ? null : base + c.v;
+      $(rId).textContent = fmtInt(r); return r;
+    }
+    row("toGR", cTO, "toGRc", "toGRr");
+    const toDc = row("toD", cTO, "toDc", "toDr");
+    row("ldGR", cLD, "ldGRc", "ldGRr");
+    const ldDc = row("ldD", cLD, "ldDc", "ldDr");
+    const todr = toDc === null || P.sfTO === null ? null : toDc * P.sfTO;
+    const ldr = ldDc === null || P.sfLD === null ? null : ldDc * P.sfLD;
+    const toda = num("toda"), lda = num("lda");
+    $("todrOut").textContent = fmtInt(todr); $("ldrOut").textContent = fmtInt(ldr);
+    $("todaOut").textContent = fmtInt(toda); $("ldaOut").textContent = fmtInt(lda);
+    const todrBad = todr !== null && toda !== null && Math.round(todr) > toda;
+    const ldrBad = ldr !== null && lda !== null && Math.round(ldr) > lda;
+    $("rowTODR").classList.toggle("bad", todrBad); $("rowLDR").classList.toggle("bad", ldrBad);
+    $("distFormula").textContent = `Corrigée = abaque ${tail ? "+ vent arrière" : "− vent de face"} (${hwKt} kt × ${tail ? (P.toTw ?? "?") + " / " + (P.ldTw ?? "?") : (P.toHw ?? "?") + " / " + (P.ldHw ?? "?")} ft/kt) · TODR = × ${P.sfTO ?? "?"} · LDR = × ${P.sfLD ?? "?"}`;
+
+    // Checks
+    const C = [];
+    if (hasMB) {
+      C.push(towBad ? ["nogo", `Masse au décollage ${fmt(toW, 0)} lbs > ${P.mtow} lbs (dépassement ${fmt(toW - P.mtow, 0)} lbs)`] : ["go", `Masse au décollage ${fmt(toW, 0)} lbs ≤ ${P.mtow} lbs`]);
+      C.push(lwBad ? ["nogo", `Masse à l'atterrissage ${fmt(ldW, 0)} lbs > ${P.mlw} lbs`] : ["go", `Masse à l'atterrissage ${fmt(ldW, 0)} lbs ≤ ${P.mlw} lbs`]);
+      C.push(toMacOk ? ["go", `Centrage décollage ${fmt(toMac, 1)} % dans ${P.macMin}–${P.macMax} %`] : ["nogo", `Centrage décollage ${fmt(toMac, 1)} % hors limites ${P.macMin}–${P.macMax} %`]);
+      C.push(ldMacOk ? ["go", `Centrage atterrissage ${fmt(ldMac, 1)} % dans ${P.macMin}–${P.macMax} %`] : ["nogo", `Centrage atterrissage ${fmt(ldMac, 1)} % hors limites ${P.macMin}–${P.macMax} %`]);
+    }
+    if (tail && (cTO.v === null || cLD.v === null)) C.push(["warn", "Vent arrière : renseignez la correction vent arrière du manuel de vol dans les paramètres"]);
+    if (todr !== null && toda !== null) C.push(todrBad ? ["nogo", `TODR ${fmtInt(todr)} ft > TODA ${toda} ft`] : ["go", `TODR ${fmtInt(todr)} ft ≤ TODA ${toda} ft`]);
+    if (ldr !== null && lda !== null) C.push(ldrBad ? ["nogo", `LDR ${fmtInt(ldr)} ft > LDA ${lda} ft`] : ["go", `LDR ${fmtInt(ldr)} ft ≤ LDA ${lda} ft`]);
+    if (xw !== null) {
+      if (P.xwMax) C.push(xwBad ? ["nogo", `Vent traversier ${fmt(Math.abs(xw), 0)} kt > ${P.xwMax} kt`] : ["go", `Vent traversier ${fmt(Math.abs(xw), 0)} kt ≤ ${P.xwMax} kt`]);
+      else C.push(["warn", `Vent traversier ${fmt(Math.abs(xw), 0)} kt : limite démontrée non renseignée`]);
+    }
+    if (tail) C.push(["warn", `Vent arrière ${fmt(Math.abs(hw), 0)} kt : envisagez la piste opposée`]);
+    $("checks").innerHTML = C.length ? C.map(([s, t]) => `<li><span class="pill ${s}">${s === "go" ? "OK" : s === "nogo" ? "NO GO" : "À VOIR"}</span><span>${t}</span></li>`).join("") : `<li><span class="pill warn">—</span><span>Saisissez les données pour lancer les vérifications.</span></li>`;
+
+    // Verdict chips
+    const mbState = !hasMB ? "warn" : (towBad || lwBad || !toMacOk || !ldMacOk) ? "nogo" : "go";
+    const pfHas = todr !== null || ldr !== null;
+    const pfState = !pfHas ? "warn" : (todrBad || ldrBad || xwBad) ? "nogo" : (C.some(c => c[0] === "warn") ? "warn" : "go");
+    const chip = (k, s) => `<div class="vchip ${s}"><div class="k">${k}</div><div class="v">${s === "go" ? "GO" : s === "nogo" ? "NO GO" : "À COMPLÉTER"}</div></div>`;
+    const pfLabel = pfHas && pfState === "warn" ? "À VÉRIFIER" : null;
+    $("verdict").innerHTML = chip("Masse &amp; centrage", mbState) + (pfLabel ? `<div class="vchip warn"><div class="k">Performances</div><div class="v">${pfLabel}</div></div>` : chip("Performances", pfState));
+    save();
+  }
+
+  function setState(id, has, ok, neutralWhenOk) {
+    const el = $(id); el.classList.remove("ok", "bad");
+    if (!has) return; el.classList.add(ok ? (neutralWhenOk ? "x" : "ok") : "bad");
+  }
+
+  function drawGauge(P, toMac, ldMac) {
+    const svg = $("cgSvg"); const lo = P.macMin ?? 19, hi = P.macMax ?? 32;
+    const vals = [toMac, ldMac].filter((v) => v !== null && isFinite(v));
+    const min = Math.floor(Math.min(lo - 4, ...vals) / 2) * 2, max = Math.ceil(Math.max(hi + 4, ...vals) / 2) * 2;
+    const L = 20, R = 500, x = (v) => L + (v - min) / (max - min) * (R - L);
+    let s = `<rect x="${L}" y="28" width="${R - L}" height="14" rx="3" fill="var(--nogo-soft)"/>`;
+    s += `<rect x="${x(lo)}" y="28" width="${x(hi) - x(lo)}" height="14" fill="var(--go-soft)" stroke="var(--go)" stroke-width="1"/>`;
+    for (let v = min; v <= max; v += 2) {
+      s += `<line x1="${x(v)}" x2="${x(v)}" y1="42" y2="47" stroke="var(--muted)" stroke-width="1"/>`;
+      s += `<text x="${x(v)}" y="60" text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--muted)">${v}</text>`;
+    }
+    const mark = (v, lbl, up) => {
+      if (v === null || !isFinite(v)) return "";
+      const ok = Math.round(v * 10) / 10 >= lo && Math.round(v * 10) / 10 <= hi;
+      const c = ok ? "var(--ink)" : "var(--nogo)";
+      const ty = up ? 20 : 20;
+      return `<line x1="${x(v)}" x2="${x(v)}" y1="24" y2="46" stroke="${c}" stroke-width="2.5"/>` +
+        `<text x="${x(v)}" y="${ty}" text-anchor="middle" font-size="11" font-weight="600" font-family="IBM Plex Mono, monospace" fill="${c}">${lbl} ${fmt(v, 1)}</text>`;
+    };
+    // Offset labels when the two marks would overlap.
+    if (toMac !== null && ldMac !== null && Math.abs(x(toMac) - x(ldMac)) < 90) {
+      const a = Math.min(toMac, ldMac) === ldMac;
+      s += mark(ldMac, "LDG", true).replace(/text-anchor="middle"/, `text-anchor="${a ? "end" : "start"}"`);
+      s += mark(toMac, "T/O", true).replace(/text-anchor="middle"/, `text-anchor="${a ? "start" : "end"}"`);
+    } else { s += mark(ldMac, "LDG", true) + mark(toMac, "T/O", true); }
+    s += `<text x="${L}" y="72" font-size="10" font-family="IBM Plex Sans, sans-serif" fill="var(--muted)">avant</text>`;
+    s += `<text x="${R}" y="72" text-anchor="end" font-size="10" font-family="IBM Plex Sans, sans-serif" fill="var(--muted)">arrière</text>`;
+    svg.setAttribute("viewBox", "0 0 520 76");
+    svg.innerHTML = s;
+  }
+
+  // ---------- INIT ----------
+  const saved = load();
+  setAll(DEFAULT_PARAMS);
+  if (saved) setAll(saved); else setAll(EXAMPLE);
+  if (saved) $("exNote").textContent = "Vos dernières saisies sont reprises sur cet appareil.";
+
+  document.addEventListener("input", (e) => {
+    if (e.target.id === "metar") applyMetar();
+    compute();
+  });
+  document.addEventListener("change", compute);
+  $("btnExample").addEventListener("click", () => { setAll(EXAMPLE); applyMetar(); $("exNote").textContent = "Valeurs d'exemple : quiz du 5 octobre et sa correction."; compute(); });
+  $("btnClear").addEventListener("click", () => { INPUT_IDS.forEach((id) => $(id).value = ""); $("metarParsed").textContent = ""; $("exNote").textContent = "Saisies vidées. Les paramètres avion sont conservés."; compute(); });
+  $("btnReset").addEventListener("click", () => { setAll(DEFAULT_PARAMS); compute(); });
+  if ($("metar").value) applyMetar();
+  compute();
+})();
+</script>
+</body>
+</html>
