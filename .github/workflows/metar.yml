@@ -27,9 +27,16 @@ jobs:
           set -euo pipefail
           mkdir out
           UA="P2010-flight-prep (github.com/Matthieumdb/P2010)"
-          curl -fsS -A "$UA" "https://aviationweather.gov/api/data/metar?ids=KFPR&format=json&hours=3" -o out/KFPR-metar.json
-          curl -fsS -A "$UA" "https://aviationweather.gov/api/data/airport?ids=KFPR&format=json" -o out/KFPR-airport.json
-          curl -fsS -A "$UA" "https://aviationweather.gov/api/data/taf?ids=KFPR&format=json" -o out/KFPR-taf.json
+          PREV="https://raw.githubusercontent.com/${{ github.repository }}/metar-data"
+          # One failing endpoint must not block the others: retry, then keep the previously published file.
+          get() {
+            curl -fsS -A "$UA" --retry 4 --retry-all-errors --retry-delay 5 -m 30 "$1" -o "out/$2" && [ -s "out/$2" ] && return 0
+            echo "::warning::$2 not refreshed, keeping the previous copy"
+            curl -fsS "$PREV/$2" -o "out/$2" || true
+          }
+          get "https://aviationweather.gov/api/data/metar?ids=KFPR&format=json&hours=3" KFPR-metar.json
+          get "https://aviationweather.gov/api/data/airport?ids=KFPR&format=json" KFPR-airport.json
+          get "https://aviationweather.gov/api/data/taf?ids=KFPR&format=json" KFPR-taf.json
           date -u +%Y-%m-%dT%H:%M:%SZ > out/updated.txt
           head -c 300 out/KFPR-metar.json; echo
       - name: Publish to the metar-data branch
