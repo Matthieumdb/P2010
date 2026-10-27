@@ -7,9 +7,10 @@
 <title>P2010 Flight Prep</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: cockpit-placard header with the go/no-go verdict, then two working panels (M&B, Performances) like the paper EFT forms, stacked on phone. */
+/* Layout: an instrument-panel header whose annunciator lights carry the go/no-go verdicts, then one working panel per tab.
+   One typeface (Archivo, width axis: expanded for legends, normal for text); magenta is the glass-cockpit "selected" colour. */
 :root {
   --bg: #eef1f4;
   --panel: #ffffff;
@@ -17,32 +18,32 @@
   --muted: #5a6878;
   --line: #d3dae2;
   --field: #f6f8fa;
-  --accent: #c27a00;
-  --accent-soft: #fff1d6;
+  --accent: #b3127a;
+  --accent-soft: #fbe3f2;
   --go: #1d7a46;
   --go-soft: #e2f4ea;
   --nogo: #b42318;
   --nogo-soft: #fde8e6;
   --warn: #9a6200;
   --warn-soft: #fff3d9;
-  --band: #14202e;
-  --band-ink: #f2f5f8;
+  --band: #2a2f35;
+  --band-ink: #eef1f4;
   --vfr: #1d7a46; --mvfr: #1f5fbf; --ifr: #c0281b; --lifr: #a12a9a;
-  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
-  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-display: "Archivo", "Arial Narrow", sans-serif;
+  --f-body: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0e141b; --panel: #161e28; --ink: #e6ebf1; --muted: #93a1b1; --line: #2a3644; --field: #1c2632;
-    --accent: #f0a420; --accent-soft: #3a2a0c; --go: #4cc483; --go-soft: #12301f; --nogo: #ff7a6b; --nogo-soft: #3a1714;
-    --warn: #f0b84a; --warn-soft: #33270f; --band: #070b10; --band-ink: #e6ebf1; --vfr: #4cc483; --mvfr: #6aa5ff; --ifr: #ff7a6b; --lifr: #e07ad8; color-scheme: dark;
+    --accent: #f27ad0; --accent-soft: #3a1630; --go: #4cc483; --go-soft: #12301f; --nogo: #ff7a6b; --nogo-soft: #3a1714;
+    --warn: #f0b84a; --warn-soft: #33270f; --band: #1d2126; --band-ink: #e6ebf1; --vfr: #4cc483; --mvfr: #6aa5ff; --ifr: #ff7a6b; --lifr: #e07ad8; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0e141b; --panel: #161e28; --ink: #e6ebf1; --muted: #93a1b1; --line: #2a3644; --field: #1c2632;
-  --accent: #f0a420; --accent-soft: #3a2a0c; --go: #4cc483; --go-soft: #12301f; --nogo: #ff7a6b; --nogo-soft: #3a1714;
-  --warn: #f0b84a; --warn-soft: #33270f; --band: #070b10; --band-ink: #e6ebf1; --vfr: #4cc483; --mvfr: #6aa5ff; --ifr: #ff7a6b; --lifr: #e07ad8; color-scheme: dark;
+  --accent: #f27ad0; --accent-soft: #3a1630; --go: #4cc483; --go-soft: #12301f; --nogo: #ff7a6b; --nogo-soft: #3a1714;
+  --warn: #f0b84a; --warn-soft: #33270f; --band: #1d2126; --band-ink: #e6ebf1; --vfr: #4cc483; --mvfr: #6aa5ff; --ifr: #ff7a6b; --lifr: #e07ad8; color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.45; }
@@ -51,39 +52,42 @@ body { background: var(--bg); color: var(--ink); font-family: var(--f-body); fon
 header.band { background: var(--band); color: var(--band-ink); }
 header.band .wrap { padding-block: 20px 18px; display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: end; justify-content: space-between; }
 .brand { display: grid; gap: 2px; }
-.brand .reg { font-family: var(--f-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
-.brand h1 { font-family: var(--f-display); font-weight: 700; font-size: 34px; letter-spacing: .02em; margin: 0; line-height: 1; text-wrap: balance; }
-.brand p { margin: 4px 0 0; font-size: 13px; opacity: .75; }
-.verdict { display: flex; gap: 10px; flex-wrap: wrap; }
-.vchip { border: 1px solid rgba(255,255,255,.18); border-radius: 6px; padding: 8px 12px; min-width: 120px; }
-.vchip .k { font-family: var(--f-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; opacity: .7; }
-.vchip .v { font-family: var(--f-display); font-weight: 700; font-size: 24px; letter-spacing: .04em; line-height: 1.1; }
-.vchip.go .v { color: #5fd897; }
-.vchip.nogo .v { color: #ff8b7e; }
-.vchip.warn .v { color: #ffc65c; }
+.brand h1 { font-family: var(--f-display); font-stretch: 112%; font-weight: 750; font-size: 34px; letter-spacing: -.01em; margin: 0; line-height: 1; text-wrap: balance; }
+.brand p { margin: 6px 0 0; font-size: 14px; opacity: .78; max-width: 60ch; }
+.verdict { display: grid; grid-template-columns: repeat(3, minmax(96px, 1fr)); gap: 6px; padding: 6px; background: #15181c; border-radius: 6px; box-shadow: inset 0 1px 3px rgba(0,0,0,.6); }
+/* Annunciator lights: unlit legend on black glass; lit = backlit legend in its caution colour. Uppercase because cockpit legends are. */
+.vchip { all: unset; box-sizing: border-box; cursor: pointer; display: grid; place-items: center; text-align: center; min-height: 52px; padding: 6px 10px; border-radius: 3px;
+  background: #0d0f12; color: #59606a; font: 700 13px/1.15 var(--f-display); font-stretch: 125%; letter-spacing: .04em; text-transform: uppercase; border: 1px solid #000; }
+.vchip small { display: block; font-weight: 600; font-size: 10px; letter-spacing: .08em; opacity: .85; }
+.vchip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.vchip.go { color: #6ff0a4; text-shadow: 0 0 8px rgba(80,230,140,.55); }
+.vchip.warn { background: #3b2b05; color: #ffcf4a; text-shadow: 0 0 8px rgba(255,200,60,.5); box-shadow: inset 0 0 14px rgba(255,190,40,.25); }
+.vchip.nogo { background: #4a0d0a; color: #ff6a5c; text-shadow: 0 0 8px rgba(255,90,70,.6); box-shadow: inset 0 0 16px rgba(255,60,40,.35); }
+.vchip.flash { animation: lamp .7s steps(1) 2; }
+@keyframes lamp { 50% { filter: brightness(1.8); } }
+@media (max-width: 520px) { .verdict { width: 100%; } input.w { width: 72px; } }
 
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-block: 14px; }
-.toolbar .tlabel { font: 500 11px var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.toolbar .tlabel { font: 600 14px var(--f-body); color: var(--muted); }
 .toolbar .acsel { width: auto; min-width: 180px; text-align: left; }
 .icao-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; }
 .icao-row .field { flex: 1 1 140px; }
 .icao-row input#icao { text-transform: uppercase; text-align: left; }
-.status { font-size: 12px; font-family: var(--f-mono); color: var(--muted); min-height: 1.2em; }
+.status { font-size: 13px; color: var(--muted); min-height: 1.2em; }
 .status.err { color: var(--nogo); }
 select { text-align: left; }
 .toolbar .note { font-size: 13px; color: var(--muted); flex: 1 1 260px; min-width: 0; }
-button { font: 500 13px var(--f-body); border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 6px; padding: 7px 12px; cursor: pointer; }
+button { font: 600 14px var(--f-body); min-height: 44px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 6px; padding: 7px 12px; cursor: pointer; }
 button:hover { border-color: var(--accent); }
 button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 main.grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; padding-bottom: 40px; max-width: 920px; }
 .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-top: 14px; overflow-x: auto; }
-.tabs button { border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: none; padding: 10px 14px; font: 600 15px var(--f-display); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.tabs button { border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: none; padding: 10px 14px; font: 650 16px var(--f-display); font-stretch: 108%; color: var(--muted); white-space: nowrap; }
 .tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
 .tabs button:hover { color: var(--ink); }
-@media (max-width: 520px) { .tabs button { padding: 10px 9px; font-size: 13px; letter-spacing: .03em; } }
-.vchip { cursor: pointer; }
-.cat { font: 600 11px var(--f-mono); letter-spacing: .06em; padding: 2px 7px; border-radius: 4px; color: #fff; display: inline-block; }
+@media (max-width: 520px) { .tabs button { padding: 10px 10px; font-size: 15px; font-stretch: 95%; } }
+.cat { font: 700 11px var(--f-display); font-stretch: 115%; letter-spacing: .04em; padding: 2px 7px; border-radius: 4px; color: #fff; display: inline-block; }
 .cat.VFR { background: var(--vfr); } .cat.MVFR { background: var(--mvfr); } .cat.IFR { background: var(--ifr); } .cat.LIFR { background: var(--lifr); }
 .taf-head { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: baseline; font-size: 13px; color: var(--muted); }
 .taf-head b { color: var(--ink); font-weight: 600; }
@@ -94,15 +98,15 @@ main.grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; pad
 .tl-seg { position: absolute; top: 0; bottom: 0; border-right: 1px solid var(--panel); }
 .tl-seg.VFR { background: var(--vfr); } .tl-seg.MVFR { background: var(--mvfr); } .tl-seg.IFR { background: var(--ifr); } .tl-seg.LIFR { background: var(--lifr); }
 .tl-seg.tempo { opacity: .55; background-image: repeating-linear-gradient(45deg, transparent 0 4px, rgba(255,255,255,.35) 4px 8px); }
-.tl-axis { position: relative; height: 16px; font: 10px var(--f-mono); color: var(--muted); }
+.tl-axis { position: relative; height: 16px; font: 11px var(--f-body); font-variant-numeric: tabular-nums; color: var(--muted); }
 .tl-axis span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
-.tl-now { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--ink); }
+.tl-now { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--accent); }
 .tl-legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--muted); align-items: center; }
 table.taf td { vertical-align: middle; white-space: normal; }
 table.taf td.when { white-space: nowrap; }
 table.taf td.when small { display: block; color: var(--muted); font-size: 11px; }
 table.taf tr.tempo td { background: var(--field); }
-.chg { font: 600 10px var(--f-mono); letter-spacing: .06em; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.chg { font: 700 10px var(--f-display); font-stretch: 115%; letter-spacing: .04em; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
 .wind { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .wind svg, .wx svg, .sky svg { flex: none; }
 .comp { font-size: 12px; color: var(--muted); white-space: nowrap; }
@@ -112,48 +116,50 @@ table.taf tr.tempo td { background: var(--field); }
 .sky span { display: inline-flex; align-items: center; gap: 5px; }
 .empty { color: var(--muted); font-size: 13px; }
 section.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; min-width: 0; overflow: hidden; }
-.panel > h2 { margin: 0; font-family: var(--f-display); font-weight: 600; font-size: 20px; letter-spacing: .06em; text-transform: uppercase; padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.panel > h2 small { font-family: var(--f-mono); font-size: 11px; letter-spacing: .08em; color: var(--muted); font-weight: 400; }
-.body { padding: 14px 16px 16px; display: grid; gap: 16px; }
-h3 { margin: 0; font-size: 12px; font-family: var(--f-mono); font-weight: 500; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.panel > h2 { margin: 0; font-family: var(--f-display); font-stretch: 112%; font-weight: 700; font-size: 20px; letter-spacing: -.005em; padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.panel > h2 small { font-size: 13px; font-stretch: 100%; color: var(--muted); font-weight: 400; }
+.body { padding: 14px 16px 16px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.field .row input { min-width: 0; }
+select { min-width: 0; max-width: 100%; text-overflow: ellipsis; }
+h3 { margin: 0; font-size: 15px; font-weight: 700; color: var(--ink); }
 
 .tbl-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 th, td { padding: 6px 6px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
-th { font: 500 11px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+th { font: 600 12px var(--f-body); color: var(--muted); }
 th:first-child, td:first-child { text-align: left; white-space: normal; }
 td.lbl { font-weight: 500; }
 td.lbl span { display: block; font-size: 12px; color: var(--muted); font-weight: 400; }
-td.num, .mono { font-family: var(--f-mono); }
+td.num, .mono { font-weight: 500; }
 tr.sub td { background: var(--field); font-weight: 600; }
 tr.sub.bad td { background: var(--nogo-soft); }
 tr.deduct td.lbl { color: var(--muted); }
 
-input, select { font: 500 14px var(--f-mono); color: var(--ink); background: var(--field); border: 1px solid var(--line); border-radius: 5px; padding: 6px 8px; width: 100%; text-align: right; font-variant-numeric: tabular-nums; }
+input, select { font: 500 16px var(--f-body); min-height: 44px; color: var(--ink); background: var(--field); border: 1px solid var(--line); border-radius: 5px; padding: 6px 8px; width: 100%; text-align: right; font-variant-numeric: tabular-nums; }
 input.w { width: 88px; }
-input.wide { text-align: left; font-family: var(--f-mono); }
+input.wide { text-align: left; font: 500 15px var(--f-mono); }
 .unit { font-size: 11px; color: var(--muted); margin-left: 4px; }
 
 .fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px 12px; }
 .field { display: grid; gap: 4px; min-width: 0; }
-.field label { font-size: 12px; color: var(--muted); }
+.field label { font-size: 13px; color: var(--muted); }
 .field .row { display: flex; align-items: center; gap: 4px; }
 
 .out { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
 .cell { background: var(--field); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; min-width: 0; }
-.cell .k { font-size: 11px; color: var(--muted); font-family: var(--f-mono); letter-spacing: .06em; text-transform: uppercase; }
-.cell .v { font: 600 20px var(--f-mono); font-variant-numeric: tabular-nums; }
+.cell .k { font-size: 13px; color: var(--muted); }
+.cell .v { font: 700 22px var(--f-display); font-stretch: 105%; font-variant-numeric: tabular-nums; }
 .cell .s { font-size: 12px; color: var(--muted); }
 .cell.bad { background: var(--nogo-soft); border-color: var(--nogo); }
 .cell.bad .v { color: var(--nogo); }
 .cell.ok .v { color: var(--go); }
 
 .gauge { display: grid; gap: 6px; }
-.gauge svg { width: 100%; height: auto; display: block; }
+.gauge svg { width: 100%; max-width: 640px; height: auto; display: block; }
 
 .checks { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .checks li { display: flex; gap: 10px; align-items: baseline; font-size: 14px; padding: 6px 10px; border-radius: 5px; background: var(--field); }
-.pill { font: 600 11px var(--f-mono); letter-spacing: .08em; padding: 2px 7px; border-radius: 4px; flex: none; }
+.pill { font: 700 11px var(--f-display); font-stretch: 115%; letter-spacing: .04em; padding: 2px 7px; border-radius: 4px; flex: none; }
 .pill.go { background: var(--go-soft); color: var(--go); }
 .pill.nogo { background: var(--nogo-soft); color: var(--nogo); }
 .pill.warn { background: var(--warn-soft); color: var(--warn); }
@@ -166,9 +172,10 @@ details.params summary { cursor: pointer; padding: 12px 16px; font: 500 13px var
 details.params .body { padding-top: 0; }
 .hint { font-size: 12px; color: var(--muted); margin: 0; }
 .tbc { color: var(--warn); font-size: 11px; font-family: var(--f-mono); }
-.metar-parsed { font-size: 12px; color: var(--muted); font-family: var(--f-mono); min-height: 1.2em; }
+.metar-parsed { font-size: 13px; color: var(--muted); min-height: 1.2em; }
 footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media (max-width: 520px) { .fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } .out { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
 <body>
@@ -176,9 +183,8 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
 <header class="band">
   <div class="wrap">
     <div class="brand">
-      <span class="reg">Tecnam P2010 · flight preparation</span>
-      <h1>Weight &amp; Balance · Performance · TAF</h1>
-      <p>Based on the European Flight Training forms (M&amp;B v3, Aircraft Performance v1)</p>
+      <h1 id="title">P2010 preflight</h1>
+      <p>Tecnam P2010 weight and balance, takeoff and landing distances, and the forecast for your departure field. Built on the European Flight Training forms (M&amp;B v3, Aircraft Performance v1).</p>
     </div>
     <div class="verdict" id="verdict"></div>
   </div>
@@ -200,7 +206,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
   <main class="grid">
     <!-- MASS & BALANCE -->
     <section class="panel" aria-labelledby="mb-h" data-pane="wb">
-      <h2 id="mb-h">Weight &amp; balance <small>lbs · ft · lbs·ft</small></h2>
+      <h2 id="mb-h">Weight &amp; balance <small>lbs, ft, lbs·ft</small></h2>
       <div class="body">
         <div class="tbl-wrap">
           <table id="mbTable">
@@ -241,7 +247,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
 
     <!-- PERFORMANCE -->
     <section class="panel" aria-labelledby="pf-h" data-pane="perf" hidden>
-      <h2 id="pf-h">Performance <small>ft · kt · °C · inHg</small></h2>
+      <h2 id="pf-h">Performance <small>ft, kt, °C, inHg</small></h2>
       <div class="body">
         <div class="icao-row">
           <div class="field"><label for="icao">Departure airport (ICAO code)</label><input id="icao" type="text" maxlength="4" autocomplete="off" spellcheck="false" placeholder="KFPR"></div>
@@ -515,7 +521,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     compute();
   }
   // ---------- TAF ----------
-  let TAF = null;
+  let TAF = null, WXCAT = null;
   const WX = { MI: "shallow", BC: "patches of", PR: "partial", DR: "drifting", BL: "blowing", SH: "showers", TS: "thunderstorm", FZ: "freezing",
     DZ: "drizzle", RA: "rain", SN: "snow", SG: "snow grains", IC: "ice crystals", PL: "ice pellets", GR: "hail", GS: "small hail", UP: "precipitation",
     BR: "mist", FG: "fog", FU: "smoke", VA: "volcanic ash", DU: "dust", SA: "sand", HZ: "haze", PY: "spray", PO: "dust whirls", SQ: "squalls", FC: "funnel cloud", SS: "sandstorm", DS: "duststorm" };
@@ -575,7 +581,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     if (/TS/.test(w)) extra = '<path d="M12 17l-2 4h3l-2 3" fill="none" stroke="var(--warn)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>';
     else if (/RA|DZ|SH|SN|PL|GR|GS/.test(w)) extra = '<path d="M9 19l-1 3M13 19l-1 3M17 19l-1 3" stroke="var(--mvfr)" stroke-width="1.6" stroke-linecap="round"/>';
     else if (/FG|BR|HZ|FU/.test(w)) return `<svg ${svgNS} width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M4 9h18M4 13h18M4 17h14M7 21h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;
-    else if (!/BKN|OVC|SCT/.test(cov)) return `<svg ${svgNS} width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="4.5" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M13 3v3M13 20v3M3 13h3M20 13h3M6 6l2 2M18 18l2 2M6 20l2-2M18 8l2-2" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+    else if (!/BKN|OVC|SCT/.test(cov)) return `<svg ${svgNS} width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="4.5" fill="none" stroke="var(--warn)" stroke-width="1.6"/><path d="M13 3v3M13 20v3M3 13h3M20 13h3M6 6l2 2M18 18l2 2M6 20l2-2M18 8l2-2" stroke="var(--warn)" stroke-width="1.6" stroke-linecap="round"/></svg>`;
     return `<svg ${svgNS} width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">${cloud}${extra}</svg>`;
   }
   // The API gives epoch seconds; accept ISO strings too.
@@ -589,6 +595,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     $("tafIcao").textContent = TAF ? TAF.icao : "—";
     const t = TAF && TAF.data;
     if (!t) {
+      WXCAT = null;
       $("tafHead").innerHTML = `<span class="empty">${TAF ? "No TAF available for " + TAF.icao + "." : "Fetch the weather in the Performance tab to load the TAF."}</span>`;
       $("tafTimeline").innerHTML = ""; $("tafBody").innerHTML = ""; $("tafRaw").textContent = "—"; return;
     }
@@ -610,6 +617,10 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
       if (!tempo) prev = m;
       return m;
     });
+    // Worst category expected over the next 3 h, TEMPO / PROB included: drives the WX annunciator.
+    const nowS = Date.now() / 1000, rank = ["VFR", "MVFR", "IFR", "LIFR"];
+    WXCAT = rows.filter((r) => r.timeFrom < nowS + 3 * 3600 && r.timeTo > nowS).map(category).filter(Boolean)
+      .sort((a, b) => rank.indexOf(b) - rank.indexOf(a))[0] || null;
     // Timeline
     const T0 = secs(t.validTimeFrom), T1 = secs(t.validTimeTo), span = T1 - T0 || 1;
     const pos = (x) => Math.max(0, Math.min(100, (x - T0) / span * 100));
@@ -869,12 +880,21 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     const mbState = !hasMB ? "warn" : (towBad || lwBad || !toMacOk || !ldMacOk || (P.bagMax && n0("bag") > P.bagMax) || (P.fuelMax && n0("fuelLb") > P.fuelMax)) ? "nogo" : "go";
     const pfHas = todr !== null || ldr !== null;
     const pfState = !pfHas ? "warn" : (todrBad || ldrBad || xwBad) ? "nogo" : (C.some(c => c[0] === "warn") ? "warn" : "go");
-    const chip = (k, s) => `<div class="vchip ${s}"><div class="k">${k}</div><div class="v">${s === "go" ? "GO" : s === "nogo" ? "NO GO" : "INCOMPLETE"}</div></div>`;
-    const pfLabel = pfHas && pfState === "warn" ? "CHECK" : null;
-    $("verdict").innerHTML = chip("Weight &amp; balance", mbState) + (pfLabel ? `<div class="vchip warn"><div class="k">Performance</div><div class="v">${pfLabel}</div></div>` : chip("Performance", pfState));
+    const word = { go: "GO", nogo: "NO GO", warn: "INCOMPLETE", off: "NO DATA" };
+    const lamps = [
+      ["wb", "W&amp;B", mbState, word[mbState]],
+      ["perf", "Perf", pfState, pfHas && pfState === "warn" ? "CHECK" : word[pfState]],
+      ["taf", "WX " + (TAF ? TAF.icao : ""), !WXCAT ? "off" : WXCAT === "VFR" ? "go" : WXCAT === "MVFR" ? "warn" : "nogo", WXCAT || "NO TAF"]
+    ];
+    // A lamp blinks twice when its state changes, like a master caution.
+    $("verdict").innerHTML = lamps.map(([tab, k, st, w]) =>
+      `<button type="button" class="vchip ${st === "off" ? "" : st}${LAMPS[tab] && LAMPS[tab] !== st ? " flash" : ""}" data-go="${tab}"${tab === "taf" ? ' title="Worst TAF category over the next 3 hours"' : ""}>${k}<small>${w}</small></button>`).join("");
+    for (const [tab, , st] of lamps) LAMPS[tab] = st;
+    $("title").textContent = (AC ? AC.immat + " " : "P2010 ") + "preflight";
     save();
   }
 
+  const LAMPS = {};
   function setState(id, has, ok, neutralWhenOk) {
     const el = $(id); el.classList.remove("ok", "bad");
     if (!has) return; el.classList.add(ok ? (neutralWhenOk ? "x" : "ok") : "bad");
@@ -889,7 +909,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     s += `<rect x="${x(lo)}" y="28" width="${x(hi) - x(lo)}" height="14" fill="var(--go-soft)" stroke="var(--go)" stroke-width="1"/>`;
     for (let v = min; v <= max; v += 2) {
       s += `<line x1="${x(v)}" x2="${x(v)}" y1="42" y2="47" stroke="var(--muted)" stroke-width="1"/>`;
-      s += `<text x="${x(v)}" y="60" text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--muted)">${v}</text>`;
+      s += `<text x="${x(v)}" y="60" text-anchor="middle" font-size="10" font-family="Archivo, sans-serif" fill="var(--muted)">${v}</text>`;
     }
     const mark = (v, lbl, up) => {
       if (v === null || !isFinite(v)) return "";
@@ -897,7 +917,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
       const c = ok ? "var(--ink)" : "var(--nogo)";
       const ty = up ? 20 : 20;
       return `<line x1="${x(v)}" x2="${x(v)}" y1="24" y2="46" stroke="${c}" stroke-width="2.5"/>` +
-        `<text x="${x(v)}" y="${ty}" text-anchor="middle" font-size="11" font-weight="600" font-family="IBM Plex Mono, monospace" fill="${c}">${lbl} ${fmt(v, 1)}</text>`;
+        `<text x="${x(v)}" y="${ty}" text-anchor="middle" font-size="11" font-weight="600" font-family="Archivo, sans-serif" fill="${c}">${lbl} ${fmt(v, 1)}</text>`;
     };
     // Offset labels when the two marks would overlap.
     if (toMac !== null && ldMac !== null && Math.abs(x(toMac) - x(ldMac)) < 90) {
@@ -905,8 +925,8 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
       s += mark(ldMac, "LDG", true).replace(/text-anchor="middle"/, `text-anchor="${a ? "end" : "start"}"`);
       s += mark(toMac, "T/O", true).replace(/text-anchor="middle"/, `text-anchor="${a ? "start" : "end"}"`);
     } else { s += mark(ldMac, "LDG", true) + mark(toMac, "T/O", true); }
-    s += `<text x="${L}" y="72" font-size="10" font-family="IBM Plex Sans, sans-serif" fill="var(--muted)">fwd</text>`;
-    s += `<text x="${R}" y="72" text-anchor="end" font-size="10" font-family="IBM Plex Sans, sans-serif" fill="var(--muted)">aft</text>`;
+    s += `<text x="${L}" y="72" font-size="10" font-family="Archivo, sans-serif" fill="var(--muted)">fwd</text>`;
+    s += `<text x="${R}" y="72" text-anchor="end" font-size="10" font-family="Archivo, sans-serif" fill="var(--muted)">aft</text>`;
     svg.setAttribute("viewBox", "0 0 520 76");
     svg.innerHTML = s;
   }
@@ -932,7 +952,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
   $("icao").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); fetchWx(); } });
   $("btnMetar").addEventListener("click", fetchWx);
   document.querySelector(".tabs").addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (b) { location.hash = b.dataset.tab; showTab(b.dataset.tab); } });
-  $("verdict").addEventListener("click", (e) => { const c = e.target.closest(".vchip"); if (!c) return; const t = c.textContent.startsWith("Perf") ? "perf" : "wb"; location.hash = t; showTab(t); });
+  $("verdict").addEventListener("click", (e) => { const c = e.target.closest(".vchip"); if (!c) return; location.hash = c.dataset.go; showTab(c.dataset.go); });
   window.addEventListener("hashchange", () => showTab(location.hash.slice(1)));
   showTab(location.hash.slice(1));
   $("btnClear").addEventListener("click", () => { INPUT_IDS.forEach((id) => $(id).value = ""); RUNWAYS = []; fillRunways(); $("metarParsed").textContent = ""; status(""); compute(); });
