@@ -62,6 +62,14 @@ header.band .wrap { padding-block: 20px 18px; display: flex; flex-wrap: wrap; ga
 .vchip.warn .v { color: #ffc65c; }
 
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-block: 14px; }
+.toolbar .tlabel { font: 500 11px var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.toolbar .acsel { width: auto; min-width: 180px; text-align: left; }
+.icao-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; }
+.icao-row .field { flex: 1 1 140px; }
+.icao-row input#icao { text-transform: uppercase; text-align: left; }
+.status { font-size: 12px; font-family: var(--f-mono); color: var(--muted); min-height: 1.2em; }
+.status.err { color: var(--nogo); }
+select { text-align: left; }
 .toolbar .note { font-size: 13px; color: var(--muted); flex: 1 1 260px; min-width: 0; }
 button { font: 500 13px var(--f-body); border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 6px; padding: 7px 12px; cursor: pointer; }
 button:hover { border-color: var(--accent); }
@@ -143,9 +151,10 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
 
 <div class="wrap">
   <div class="toolbar">
-    <button type="button" id="btnExample">Charger l'exemple (quiz 5 oct.)</button>
+    <label for="acSel" class="tlabel">Avion</label>
+    <select id="acSel" class="acsel"></select>
     <button type="button" id="btnClear">Vider les saisies</button>
-    <span class="note" id="exNote">Valeurs d'exemple : quiz du 5 octobre et sa correction. Remplacez-les par les vôtres.</span>
+    <span class="note" id="exNote"></span>
   </div>
 
   <main class="grid">
@@ -157,10 +166,10 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
           <table id="mbTable">
             <thead><tr><th>Poste</th><th>Poids</th><th>Bras</th><th>Moment</th></tr></thead>
             <tbody>
-              <tr><td class="lbl">Masse à vide de base<span>poids et moment de la fiche de pesée</span></td>
-                <td><input class="w" id="bew" type="number" step="any" inputmode="decimal"></td>
+              <tr><td class="lbl">Masse à vide de base<span id="bewSrc">selon l'avion choisi</span></td>
+                <td class="num" id="bew">—</td>
                 <td class="num" id="bewArm">—</td>
-                <td><input class="w" id="bewMom" type="number" step="any" inputmode="decimal"></td></tr>
+                <td class="num" id="bewMom">—</td></tr>
               <tr><td class="lbl">Pilote</td><td><input class="w" id="pilot" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armFront"></td><td class="num" id="m_pilot"></td></tr>
               <tr><td class="lbl">Copilote</td><td><input class="w" id="copilot" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armFront"></td><td class="num" id="m_copilot"></td></tr>
               <tr><td class="lbl">Passager 1</td><td><input class="w" id="pax1" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armRear"></td><td class="num" id="m_pax1"></td></tr>
@@ -194,8 +203,14 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     <section class="panel" aria-labelledby="pf-h">
       <h2 id="pf-h">Performances <small>ft · kt · °C · inHg</small></h2>
       <div class="body">
+        <div class="icao-row">
+          <div class="field"><label for="icao">Aéroport de départ (code OACI)</label><input id="icao" type="text" maxlength="4" autocomplete="off" spellcheck="false" placeholder="KSFB"></div>
+          <button type="button" id="btnMetar">Récupérer le METAR</button>
+          <div class="field"><label for="rwySel">Piste</label><select id="rwySel"><option value="">— choisir après recherche —</option></select></div>
+        </div>
+        <div class="status" id="wxStatus"></div>
         <div class="field">
-          <label for="metar">METAR (collez-le : vent, température et calage sont extraits)</label>
+          <label for="metar">METAR (récupéré automatiquement, ou à coller)</label>
           <input class="wide" id="metar" type="text" autocomplete="off" spellcheck="false" placeholder="LFPN 271200Z 22018G20KT 9999 24/24 Q1015">
           <div class="metar-parsed" id="metarParsed"></div>
         </div>
@@ -272,7 +287,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
             <div class="field"><label for="gustMode">Vent utilisé</label>
               <select id="gustMode"><option value="steady">Vent moyen (comme la fiche)</option><option value="gust">Rafales</option></select></div>
           </div>
-          <div><button type="button" id="btnReset">Rétablir les paramètres de l'école</button></div>
+          <div><button type="button" id="btnReset">Rétablir les paramètres de l'avion</button></div>
         </div>
       </details>
     </section>
@@ -281,6 +296,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
   <footer>Outil d'aide à la préparation. Le manuel de vol (POH/AFM) de l'avion fait foi ; le commandant de bord reste responsable de la décision.</footer>
 </div>
 
+<script src="aircraft.js"></script>
 <script>
 (function () {
   const DEFAULT_PARAMS = {
@@ -289,16 +305,13 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     toHw: 33, toTw: "", ldHw: 13, ldTw: "", sfTO: 1.33, sfLD: 1.43, xwMax: "",
     isaMode: "sl", gustMode: "steady"
   };
-  const EXAMPLE = {
-    bew: 1689, bewMom: 1820, pilot: 200, copilot: 120, pax1: 180, pax2: 0, bag: 30,
-    fuelGal: 61, taxiGal: 2, tripGal: 12,
-    metar: "22018G20KT 24/24 A2999", elev: 23, alt: 29.99, oat: 24, wdir: 220, wspd: 18, wgst: 20,
-    rwy: 280, toda: 6492, lda: 6492, toGR: 1480, toD: 2224, ldGR: 804, ldD: 1736
-  };
-  const INPUT_IDS = Object.keys(EXAMPLE);
+  const INPUT_IDS = ["pilot", "copilot", "pax1", "pax2", "bag", "fuelGal", "taxiGal", "tripGal",
+    "metar", "elev", "alt", "oat", "wdir", "wspd", "wgst", "rwy", "toda", "lda", "toGR", "toD", "ldGR", "ldD"];
   const PARAM_IDS = Object.keys(DEFAULT_PARAMS);
-  const STORE = "p2010-prep-v1";
+  const STORE = "p2010-prep-v2";
+  const FLEET = (window.P2010_FLEET || []).filter((a) => a && a.immat);
   const $ = (id) => document.getElementById(id);
+  let AC = null;
 
   function num(id) { const v = parseFloat(String($(id).value).replace(",", ".")); return isFinite(v) ? v : null; }
   function n0(id) { return num(id) ?? 0; }
@@ -306,15 +319,121 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
   function fmtInt(v) { return (v === null || !isFinite(v)) ? "—" : String(Math.round(v)); }
 
   function setAll(obj) { for (const [k, v] of Object.entries(obj)) if ($(k)) $(k).value = v; }
+  // Only the chosen aircraft and airport are remembered; weights and distances start empty each visit.
   function save() {
-    try {
-      const data = {}; [...INPUT_IDS, ...PARAM_IDS].forEach((id) => data[id] = $(id).value);
-      localStorage.setItem(STORE, JSON.stringify(data));
-    } catch (e) {}
+    try { localStorage.setItem(STORE, JSON.stringify({ immat: AC ? AC.immat : "", icao: $("icao").value })); } catch (e) {}
   }
   function load() {
-    try { const s = localStorage.getItem(STORE); return s ? JSON.parse(s) : null; } catch (e) { return null; }
+    try { const s = localStorage.getItem(STORE); return s ? JSON.parse(s) : {}; } catch (e) { return {}; }
   }
+
+  // ---------- FLEET ----------
+  function fillFleet() {
+    const sel = $("acSel");
+    sel.innerHTML = FLEET.length
+      ? FLEET.map((a, i) => `<option value="${i}">${a.immat}</option>`).join("")
+      : `<option value="">Aucun avion enregistré</option>`;
+  }
+  function selectAircraft(idx) {
+    AC = FLEET[idx] || null;
+    setAll(DEFAULT_PARAMS);
+    if (AC) {
+      const o = {};
+      for (const k of PARAM_IDS) if (AC[k] !== undefined && AC[k] !== null) o[k] = AC[k];
+      setAll(o);
+    }
+    $("bewSrc").textContent = AC ? `${AC.immat}${AC.pesee ? " · pesée " + AC.pesee : ""}` : "aucun avion sélectionné";
+    $("exNote").textContent = AC && AC.note ? AC.note : "";
+  }
+
+  // ---------- AIRPORT & METAR ----------
+  // aviationweather.gov refuses cross-origin calls from a browser, so requests go
+  // through public CORS relays, tried in order.
+  const RELAYS = [
+    (u) => u,
+    (u) => "https://corsproxy.io/?url=" + encodeURIComponent(u),
+    (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
+    (u) => "https://api.codetabs.com/v1/proxy/?quest=" + encodeURIComponent(u)
+  ];
+  async function getJSON(url) {
+    let last;
+    for (const r of RELAYS) {
+      try {
+        const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 8000);
+        const res = await fetch(r(url), { signal: ctl.signal, cache: "no-store" });
+        clearTimeout(t);
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return JSON.parse(await res.text());
+      } catch (e) { last = e; }
+    }
+    throw last || new Error("réseau");
+  }
+  let RUNWAYS = [];
+  function runwayEnds(apt) {
+    const out = [];
+    for (const r of apt.runways || []) {
+      const len = parseInt(String(r.dimension || "").split("x")[0], 10) || null;
+      for (const end of String(r.id || "").split("/")) {
+        const m = end.match(/^(\d{1,2})([LCR]?)$/);
+        if (!m) continue;
+        out.push({ id: end, hdg: (+m[1] || 36) * 10, len, surface: r.surface || "" });
+      }
+    }
+    return out.sort((a, b) => a.hdg - b.hdg || a.id.localeCompare(b.id));
+  }
+  function fillRunways() {
+    const wdir = num("wdir"), spd = num("wspd") || 0;
+    $("rwySel").innerHTML = `<option value="">— choisir —</option>` + RUNWAYS.map((r, i) => {
+      let w = "";
+      if (wdir !== null) { const hw = Math.cos((wdir - r.hdg) * Math.PI / 180) * spd; w = ` · ${hw >= 0 ? "face" : "arrière"} ${Math.abs(Math.round(hw))} kt`; }
+      return `<option value="${i}">${r.id} · ${r.hdg}° · ${r.len ? r.len + " ft" : "longueur ?"}${w}</option>`;
+    }).join("");
+    // Preselect the runway with the most headwind.
+    if (wdir !== null && RUNWAYS.length) {
+      let best = 0, bv = -1e9;
+      RUNWAYS.forEach((r, i) => { const v = Math.cos((wdir - r.hdg) * Math.PI / 180); if (v > bv + 1e-6) { bv = v; best = i; } });
+      $("rwySel").value = String(best); applyRunway();
+    }
+  }
+  function applyRunway() {
+    const r = RUNWAYS[+$("rwySel").value];
+    if ($("rwySel").value === "" || !r) return;
+    $("rwy").value = r.hdg;
+    if (r.len) { $("toda").value = r.len; $("lda").value = r.len; }
+  }
+  async function fetchWx() {
+    const icao = $("icao").value.trim().toUpperCase();
+    $("icao").value = icao;
+    if (!/^[A-Z0-9]{3,4}$/.test(icao)) { status("Saisissez un code OACI de 4 lettres, par exemple KSFB ou LFPN.", true); return; }
+    status("Recherche de " + icao + "…");
+    $("btnMetar").disabled = true;
+    const base = "https://aviationweather.gov/api/data/";
+    const [apt, met] = await Promise.allSettled([
+      getJSON(base + "airport?ids=" + icao + "&format=json"),
+      getJSON(base + "metar?ids=" + icao + "&format=json&hours=3")
+    ]);
+    $("btnMetar").disabled = false;
+    const msgs = []; let err = false;
+    if (apt.status === "fulfilled" && apt.value && apt.value[0]) {
+      const a = apt.value[0];
+      // The airport service gives elevation in metres.
+      if (a.elev !== undefined && a.elev !== null) $("elev").value = Math.round(a.elev * 3.28084);
+      RUNWAYS = runwayEnds(a);
+      msgs.push(`${(a.name || icao).trim()} · ${$("elev").value} ft · ${RUNWAYS.length} QFU`);
+    } else { RUNWAYS = []; err = true; msgs.push("Aéroport introuvable : saisissez altitude, piste et longueur à la main"); }
+    if (met.status === "fulfilled" && met.value && met.value.length) {
+      const m = met.value.slice().sort((x, y) => (y.obsTime || 0) - (x.obsTime || 0))[0];
+      $("metar").value = m.rawOb || "";
+      applyMetar();
+      const age = m.obsTime ? Math.round((Date.now() / 1000 - m.obsTime) / 60) : null;
+      msgs.push(age !== null ? `METAR d'il y a ${age} min` : "METAR récupéré");
+      if (age !== null && age > 90) { err = true; msgs.push("METAR ancien, vérifiez"); }
+    } else { err = true; msgs.push("METAR indisponible : collez-le ci-dessous"); }
+    fillRunways();
+    status(msgs.join(" · "), err);
+    compute();
+  }
+  function status(t, err) { $("wxStatus").textContent = t; $("wxStatus").classList.toggle("err", !!err); }
 
   // ---------- METAR ----------
   function parseMetar(txt) {
@@ -360,20 +479,21 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
 
     // M&B
     const dens = P.fuelDens ?? 6;
-    const bew = n0("bew"), bewMom = n0("bewMom");
+    const bew = AC ? +AC.bew || 0 : 0, bewMom = AC ? +AC.bewMoment || 0 : 0;
+    $("bew").textContent = AC ? fmt(bew, 1) : "—"; $("bewMom").textContent = AC ? fmt(bewMom, 1) : "—";
     $("bewArm").textContent = bew ? fmt(bewMom / bew, 3) : "—";
     const items = [
       ["pilot", n0("pilot"), P.armFront], ["copilot", n0("copilot"), P.armFront],
       ["pax1", n0("pax1"), P.armRear], ["pax2", n0("pax2"), P.armRear], ["bag", n0("bag"), P.armBag]
     ];
     let W = bew, M = bewMom;
-    for (const [id, w, arm] of items) { const m = w * (arm ?? 0); $("m_" + id).textContent = fmt(m, 1); W += w; M += m; }
+    for (const [id, w, arm] of items) { const m = w * (arm ?? 0); $("m_" + id).textContent = num(id) === null ? "" : fmt(m, 1); W += w; M += m; }
     const fuelL = n0("fuelGal") * dens, taxiL = n0("taxiGal") * dens, tripL = n0("tripGal") * dens;
     $("fuelLbs").textContent = fmt(fuelL, 0); $("taxiLbs").textContent = fmt(taxiL, 0); $("tripLbs").textContent = fmt(tripL, 0);
     const af = P.armFuel ?? 0;
-    $("m_fuel").textContent = fmt(fuelL * af, 1);
-    $("m_taxi").textContent = "−" + fmt(taxiL * af, 1);
-    $("m_trip").textContent = "−" + fmt(tripL * af, 1);
+    $("m_fuel").textContent = num("fuelGal") === null ? "" : fmt(fuelL * af, 1);
+    $("m_taxi").textContent = num("taxiGal") === null ? "" : "−" + fmt(taxiL * af, 1);
+    $("m_trip").textContent = num("tripGal") === null ? "" : "−" + fmt(tripL * af, 1);
     W += fuelL; M += fuelL * af;
     const toW = W - taxiL, toM = M - taxiL * af;
     const ldW = toW - tripL, ldM = toM - tripL * af;
@@ -383,7 +503,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     $("toW").textContent = fmt(toW, 1); $("toArm").textContent = fmt(toArm, 2); $("toMom").textContent = fmt(toM, 1);
     $("ldW").textContent = fmt(ldW, 1); $("ldArm").textContent = fmt(ldArm, 2); $("ldMom").textContent = fmt(ldM, 1);
 
-    const hasMB = bew > 0;
+    const hasMB = bew > 0 && W - bew - fuelL > 0;
     const towBad = hasMB && P.mtow && toW > P.mtow;
     const lwBad = hasMB && P.mlw && ldW > P.mlw;
     const inLim = (v) => v !== null && P.macMin !== null && P.macMax !== null && v >= P.macMin && v <= P.macMax;
@@ -525,19 +645,26 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
 
   // ---------- INIT ----------
   const saved = load();
-  setAll(DEFAULT_PARAMS);
-  if (saved) setAll(saved); else setAll(EXAMPLE);
-  if (saved) $("exNote").textContent = "Vos dernières saisies sont reprises sur cet appareil.";
+  fillFleet();
+  const startIdx = Math.max(0, FLEET.findIndex((a) => a.immat === saved.immat));
+  if (FLEET.length) $("acSel").value = String(startIdx);
+  selectAircraft(FLEET.length ? startIdx : -1);
+  if (saved.icao) $("icao").value = saved.icao;
 
   document.addEventListener("input", (e) => {
     if (e.target.id === "metar") applyMetar();
+    if (e.target.id === "metar" || e.target.id === "wdir" || e.target.id === "wspd") { if (RUNWAYS.length) { const v = $("rwySel").value; fillRunways(); if (v !== "") { $("rwySel").value = v; applyRunway(); } } }
     compute();
   });
-  document.addEventListener("change", compute);
-  $("btnExample").addEventListener("click", () => { setAll(EXAMPLE); applyMetar(); $("exNote").textContent = "Valeurs d'exemple : quiz du 5 octobre et sa correction."; compute(); });
-  $("btnClear").addEventListener("click", () => { INPUT_IDS.forEach((id) => $(id).value = ""); $("metarParsed").textContent = ""; $("exNote").textContent = "Saisies vidées. Les paramètres avion sont conservés."; compute(); });
-  $("btnReset").addEventListener("click", () => { setAll(DEFAULT_PARAMS); compute(); });
-  if ($("metar").value) applyMetar();
+  document.addEventListener("change", (e) => {
+    if (e.target.id === "acSel") selectAircraft(+e.target.value);
+    if (e.target.id === "rwySel") applyRunway();
+    compute();
+  });
+  $("icao").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); fetchWx(); } });
+  $("btnMetar").addEventListener("click", fetchWx);
+  $("btnClear").addEventListener("click", () => { INPUT_IDS.forEach((id) => $(id).value = ""); RUNWAYS = []; fillRunways(); $("metarParsed").textContent = ""; status(""); compute(); });
+  $("btnReset").addEventListener("click", () => { selectAircraft(+$("acSel").value); compute(); });
   compute();
 })();
 </script>
