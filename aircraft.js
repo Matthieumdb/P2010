@@ -2,7 +2,7 @@
 // bew / bewMoment: basic empty weight (lbs) and moment (lbs·m) from the weighing report.
 // The other fields are optional and override the page defaults for that aircraft:
 // armFront, armRear, armBag, armFuel, fuelDens, mtow, mlw, macDiv, macMin, macMax,
-// toHw, toTw, ldHw, ldTw, sfTO, sfLD, xwMax.
+// toHw, toTw, ldHw, ldTw, sfTO, sfLD, xwMax, bagMax, fuelMax.
 window.P2010_FLEET = [
   {
     immat: "EXAMPLE (Oct 5 quiz)",

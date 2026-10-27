@@ -160,7 +160,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
   <main class="grid">
     <!-- MASS & BALANCE -->
     <section class="panel" aria-labelledby="mb-h">
-      <h2 id="mb-h">Weight &amp; balance <small>lbs · m · lbs·m</small></h2>
+      <h2 id="mb-h">Weight &amp; balance <small>lbs · ft · lbs·ft</small></h2>
       <div class="body">
         <div class="tbl-wrap">
           <table id="mbTable">
@@ -227,6 +227,8 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
             <div class="field"><label for="rwy">Runway heading</label><div class="row"><input id="rwy" type="number" step="any" inputmode="decimal"><span class="unit">°</span></div></div>
             <div class="field"><label for="toda">TODA</label><div class="row"><input id="toda" type="number" step="any" inputmode="decimal"><span class="unit">ft</span></div></div>
             <div class="field"><label for="lda">LDA</label><div class="row"><input id="lda" type="number" step="any" inputmode="decimal"><span class="unit">ft</span></div></div>
+            <div class="field"><label for="surface">Runway surface</label><select id="surface"><option value="paved">Paved</option><option value="grass">Grass</option></select></div>
+            <div class="field"><label for="slope">Runway slope (+ = uphill)</label><div class="row"><input id="slope" type="number" step="0.1" inputmode="decimal"><span class="unit">%</span></div></div>
           </div>
         </div>
 
@@ -239,15 +241,15 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
 
         <div>
           <h3 style="margin-bottom:8px">Distances</h3>
-          <p class="hint" style="margin-bottom:8px">Enter the values read from the POH charts (for today's weight, pressure altitude and temperature). The wind correction and safety factor are applied here.</p>
+          <p class="hint" style="margin-bottom:8px" id="chartNote">Chart values are interpolated from the AFM Section 5 tables for the takeoff weight, pressure altitude and temperature.</p>
           <div class="tbl-wrap">
             <table class="dist">
-              <thead><tr><th>Distance</th><th>Chart</th><th>Wind corr.</th><th>Corrected</th><th>× SF</th><th>Avail.</th></tr></thead>
+              <thead><tr><th>Distance</th><th>Chart</th><th>Rwy corr.</th><th>Wind corr.</th><th>Corrected</th><th>× SF</th><th>Avail.</th></tr></thead>
               <tbody>
-                <tr><td class="lbl">Takeoff ground roll</td><td><input class="w" id="toGR" type="number" step="any" inputmode="decimal"></td><td class="num" id="toGRc"></td><td class="num" id="toGRr"></td><td class="num">—</td><td class="num">—</td></tr>
-                <tr class="sub" id="rowTODR"><td class="lbl">Takeoff over 50 ft (TODR)</td><td><input class="w" id="toD" type="number" step="any" inputmode="decimal"></td><td class="num" id="toDc"></td><td class="num" id="toDr"></td><td class="num" id="todrOut"></td><td class="num" id="todaOut"></td></tr>
-                <tr><td class="lbl">Landing ground roll</td><td><input class="w" id="ldGR" type="number" step="any" inputmode="decimal"></td><td class="num" id="ldGRc"></td><td class="num" id="ldGRr"></td><td class="num">—</td><td class="num">—</td></tr>
-                <tr class="sub" id="rowLDR"><td class="lbl">Landing over 50 ft (LDR)</td><td><input class="w" id="ldD" type="number" step="any" inputmode="decimal"></td><td class="num" id="ldDc"></td><td class="num" id="ldDr"></td><td class="num" id="ldrOut"></td><td class="num" id="ldaOut"></td></tr>
+                <tr><td class="lbl">Takeoff ground roll</td><td class="num" id="toGR">—</td><td class="num" id="toGRs"></td><td class="num" id="toGRc"></td><td class="num" id="toGRr"></td><td class="num">—</td><td class="num">—</td></tr>
+                <tr class="sub" id="rowTODR"><td class="lbl">Takeoff over 50 ft (TODR)</td><td class="num" id="toD">—</td><td class="num" id="toDs"></td><td class="num" id="toDc"></td><td class="num" id="toDr"></td><td class="num" id="todrOut"></td><td class="num" id="todaOut"></td></tr>
+                <tr><td class="lbl">Landing ground roll</td><td class="num" id="ldGR">—</td><td class="num" id="ldGRs"></td><td class="num" id="ldGRc"></td><td class="num" id="ldGRr"></td><td class="num">—</td><td class="num">—</td></tr>
+                <tr class="sub" id="rowLDR"><td class="lbl">Landing over 50 ft (LDR)</td><td class="num" id="ldD">—</td><td class="num" id="ldDs"></td><td class="num" id="ldDc"></td><td class="num" id="ldDr"></td><td class="num" id="ldrOut"></td><td class="num" id="ldaOut"></td></tr>
               </tbody>
             </table>
           </div>
@@ -263,25 +265,27 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
       <details class="params" id="params">
         <summary>Aircraft parameters and calculation method</summary>
         <div class="body">
-          <p class="hint">Values taken from the school forms. Those marked <span class="tbc">to confirm</span> must be checked against your aircraft's POH.</p>
+          <p class="hint">Arms, limits and corrections from the school forms and the P2010 AFM (Sections 2, 5 and 6). Safety factors are the school's.</p>
           <div class="fields">
-            <div class="field"><label for="armFront">Front seats arm</label><div class="row"><input id="armFront" type="number" step="any"><span class="unit">m</span></div></div>
-            <div class="field"><label for="armRear">Rear seats arm</label><div class="row"><input id="armRear" type="number" step="any"><span class="unit">m</span></div></div>
-            <div class="field"><label for="armBag">Baggage arm</label><div class="row"><input id="armBag" type="number" step="any"><span class="unit">m</span></div></div>
-            <div class="field"><label for="armFuel">Fuel arm</label><div class="row"><input id="armFuel" type="number" step="any"><span class="unit">m</span></div></div>
+            <div class="field"><label for="armFront">Front seats arm</label><div class="row"><input id="armFront" type="number" step="any"><span class="unit">ft</span></div></div>
+            <div class="field"><label for="armRear">Rear seats arm</label><div class="row"><input id="armRear" type="number" step="any"><span class="unit">ft</span></div></div>
+            <div class="field"><label for="armBag">Baggage arm</label><div class="row"><input id="armBag" type="number" step="any"><span class="unit">ft</span></div></div>
+            <div class="field"><label for="armFuel">Fuel arm</label><div class="row"><input id="armFuel" type="number" step="any"><span class="unit">ft</span></div></div>
             <div class="field"><label for="fuelDens">Fuel density</label><div class="row"><input id="fuelDens" type="number" step="any"><span class="unit">lbs/gal</span></div></div>
             <div class="field"><label for="mtow">Max takeoff weight</label><div class="row"><input id="mtow" type="number" step="any"><span class="unit">lbs</span></div></div>
-            <div class="field"><label for="mlw">Max landing weight <span class="tbc">to confirm</span></label><div class="row"><input id="mlw" type="number" step="any"><span class="unit">lbs</span></div></div>
-            <div class="field"><label for="macDiv">% MAC divisor</label><div class="row"><input id="macDiv" type="number" step="any"><span class="unit">m</span></div></div>
+            <div class="field"><label for="mlw">Max landing weight </label><div class="row"><input id="mlw" type="number" step="any"><span class="unit">lbs</span></div></div>
+            <div class="field"><label for="bagMax">Max baggage</label><div class="row"><input id="bagMax" type="number" step="any"><span class="unit">lbs</span></div></div>
+            <div class="field"><label for="fuelMax">Max usable fuel</label><div class="row"><input id="fuelMax" type="number" step="any"><span class="unit">lbs</span></div></div>
+            <div class="field"><label for="macDiv">% MAC divisor</label><div class="row"><input id="macDiv" type="number" step="any"><span class="unit">ft</span></div></div>
             <div class="field"><label for="macMin">Forward limit</label><div class="row"><input id="macMin" type="number" step="any"><span class="unit">% MAC</span></div></div>
             <div class="field"><label for="macMax">Aft limit</label><div class="row"><input id="macMax" type="number" step="any"><span class="unit">% MAC</span></div></div>
             <div class="field"><label for="toHw">T/O: headwind</label><div class="row"><input id="toHw" type="number" step="any"><span class="unit">ft/kt</span></div></div>
-            <div class="field"><label for="toTw">T/O: tailwind <span class="tbc">to confirm</span></label><div class="row"><input id="toTw" type="number" step="any" placeholder="POH"><span class="unit">ft/kt</span></div></div>
+            <div class="field"><label for="toTw">T/O: tailwind </label><div class="row"><input id="toTw" type="number" step="any" placeholder="POH"><span class="unit">ft/kt</span></div></div>
             <div class="field"><label for="ldHw">LDG: headwind</label><div class="row"><input id="ldHw" type="number" step="any"><span class="unit">ft/kt</span></div></div>
-            <div class="field"><label for="ldTw">LDG: tailwind <span class="tbc">to confirm</span></label><div class="row"><input id="ldTw" type="number" step="any" placeholder="POH"><span class="unit">ft/kt</span></div></div>
+            <div class="field"><label for="ldTw">LDG: tailwind </label><div class="row"><input id="ldTw" type="number" step="any" placeholder="POH"><span class="unit">ft/kt</span></div></div>
             <div class="field"><label for="sfTO">T/O safety factor</label><div class="row"><input id="sfTO" type="number" step="any"><span class="unit">×</span></div></div>
             <div class="field"><label for="sfLD">LDG safety factor</label><div class="row"><input id="sfLD" type="number" step="any"><span class="unit">×</span></div></div>
-            <div class="field"><label for="xwMax">Max crosswind <span class="tbc">to confirm</span></label><div class="row"><input id="xwMax" type="number" step="any" placeholder="POH"><span class="unit">kt</span></div></div>
+            <div class="field"><label for="xwMax">Max crosswind </label><div class="row"><input id="xwMax" type="number" step="any" placeholder="POH"><span class="unit">kt</span></div></div>
             <div class="field"><label for="isaMode">ISA deviation based on</label>
               <select id="isaMode"><option value="sl">ISA 15 °C (as on the form)</option><option value="pa">ISA at pressure altitude</option></select></div>
             <div class="field"><label for="gustMode">Wind used</label>
@@ -297,16 +301,17 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
 </div>
 
 <script src="aircraft.js"></script>
+<script src="performance.js"></script>
 <script>
 (function () {
   const DEFAULT_PARAMS = {
     armFront: 0.92, armRear: 3.47, armBag: 5.25, armFuel: 2.0, fuelDens: 6,
     mtow: 2557, mlw: 2557, macDiv: 4.52, macMin: 19, macMax: 32,
-    toHw: 33, toTw: "", ldHw: 13, ldTw: "", sfTO: 1.33, sfLD: 1.43, xwMax: "",
+    toHw: 33, toTw: 66, ldHw: 13, ldTw: 43, sfTO: 1.33, sfLD: 1.43, xwMax: 17, bagMax: 88, fuelMax: 366,
     isaMode: "sl", gustMode: "steady"
   };
   const INPUT_IDS = ["pilot", "copilot", "pax1", "pax2", "bag", "fuelLb", "taxiLb", "tripLb",
-    "metar", "elev", "alt", "oat", "wdir", "wspd", "wgst", "rwy", "toda", "lda", "toGR", "toD", "ldGR", "ldD"];
+    "metar", "elev", "alt", "oat", "wdir", "wspd", "wgst", "rwy", "toda", "lda", "slope"];
   const PARAM_IDS = Object.keys(DEFAULT_PARAMS);
   const STORE = "p2010-prep-v2";
   const FLEET = (window.P2010_FLEET || []).filter((a) => a && a.immat);
@@ -399,6 +404,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     const r = RUNWAYS[+$("rwySel").value];
     if ($("rwySel").value === "" || !r) return;
     $("rwy").value = r.hdg;
+    $("surface").value = /^(T|G|TURF|GRASS|GRS)/i.test(r.surface) ? "grass" : "paved";
     if (r.len) { $("toda").value = r.len; $("lda").value = r.len; }
   }
   async function fetchWx() {
@@ -559,16 +565,55 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
       const f = kind === "to" ? P.toTw : P.ldTw; return { v: f === null ? null : f * hwKt, ok: f !== null };
     }
     const cTO = corr("to"), cLD = corr("ld");
-    function row(inId, c, cId, rId) {
-      const base = num(inId);
+    // AFM tables: bilinear in pressure altitude and OAT, then linear in weight (takeoff only).
+    const T = window.P2010_PERF;
+    function lerp(xs, x) { let k = 0; while (k < xs.length - 2 && x > xs[k + 1]) k++; return [k, (x - xs[k]) / (xs[k + 1] - xs[k])]; }
+    function look(tbl, p, t) {
+      const [i, fi] = lerp(T.pa, p), [j, fj] = lerp(T.temp, t);
+      const a = tbl[i][j] + (tbl[i][j + 1] - tbl[i][j]) * fj, b = tbl[i + 1][j] + (tbl[i + 1][j + 1] - tbl[i + 1][j]) * fj;
+      return a + (b - a) * fi;
+    }
+    const chartMsgs = [];
+    let paC = null, tC = oat, wTO = hasMB ? toW : (P.mtow || 2557);
+    if (T && pa !== null && oat !== null) {
+      paC = Math.max(0, pa);
+      if (pa > 6000) { paC = null; chartMsgs.push("pressure altitude above 6000 ft is outside the AFM tables"); }
+      if (oat < -25 || oat > 50) { paC = null; chartMsgs.push("OAT outside the AFM tables (−25 to 50 °C)"); }
+      if (wTO > 2557) { chartMsgs.push(`takeoff weight ${fmt(wTO, 0)} lbs is above the 2557 lbs table, 2557 lbs used`); wTO = 2557; }
+      if (wTO < 2116) wTO = 2116;
+    }
+    const chart = { toGR: null, toD: null, ldGR: null, ldD: null };
+    if (T && paC !== null) {
+      const ws = T.takeoff.map((x) => x.weight);
+      let hi = 0; while (hi < ws.length - 1 && ws[hi + 1] >= wTO) hi++;
+      const lo = Math.min(hi + 1, ws.length - 1);
+      const f = ws[hi] === ws[lo] ? 0 : (ws[hi] - wTO) / (ws[hi] - ws[lo]);
+      for (const k of ["gr", "d50"]) {
+        const a = look(T.takeoff[hi][k], paC, tC), b = look(T.takeoff[lo][k], paC, tC);
+        chart[k === "gr" ? "toGR" : "toD"] = a + (b - a) * f;
+      }
+      chart.ldGR = look(T.landing.gr, paC, tC); chart.ldD = look(T.landing.d50, paC, tC);
+    }
+    // Surface and slope corrections apply to the ground roll; the same increment carries into the 50 ft distance.
+    const grass = $("surface").value === "grass", slope = num("slope") ?? 0;
+    const C5 = T ? T.corr : { grassToGR: .1, grassLdGR: .1, slopeToGR: .1, slopeLdGR: -.03 };
+    const rTO = chart.toGR === null ? null : chart.toGR * ((grass ? C5.grassToGR : 0) + C5.slopeToGR * slope);
+    const rLD = chart.ldGR === null ? null : chart.ldGR * ((grass ? C5.grassLdGR : 0) + C5.slopeLdGR * slope);
+    function row(key, rc, c, cId, rId) {
+      const base = chart[key];
+      $(key).textContent = fmtInt(base);
+      $(key + "s").textContent = rc === null ? "" : (Math.abs(rc) < 0.5 ? "0" : (rc > 0 ? "+" : "−") + fmt(Math.abs(rc), 0));
       $(cId).textContent = c.v === null ? "?" : (c.v === 0 ? "0" : (c.v > 0 ? "+" : "−") + fmt(Math.abs(c.v), 0));
-      const r = (base === null || c.v === null) ? null : base + c.v;
+      const r = (base === null || c.v === null) ? null : base + (rc || 0) + c.v;
       $(rId).textContent = fmtInt(r); return r;
     }
-    row("toGR", cTO, "toGRc", "toGRr");
-    const toDc = row("toD", cTO, "toDc", "toDr");
-    row("ldGR", cLD, "ldGRc", "ldGRr");
-    const ldDc = row("ldD", cLD, "ldDc", "ldDr");
+    row("toGR", rTO, cTO, "toGRc", "toGRr");
+    const toDc = row("toD", rTO, cTO, "toDc", "toDr");
+    row("ldGR", rLD, cLD, "ldGRc", "ldGRr");
+    const ldDc = row("ldD", rLD, cLD, "ldDc", "ldDr");
+    $("chartNote").textContent = paC !== null
+      ? `Interpolated from the AFM Section 5 tables at ${fmtInt(paC)} ft, ${fmt(tC, 0)} °C, takeoff ${fmt(wTO, 0)} lbs, landing 2557 lbs (the AFM gives landing data at max weight only).`
+      : (chartMsgs.length ? "No chart value: " + chartMsgs.join("; ") + "." : "Chart values appear once field elevation, altimeter setting and temperature are entered.");
     const todr = toDc === null || P.sfTO === null ? null : toDc * P.sfTO;
     const ldr = ldDc === null || P.sfLD === null ? null : ldDc * P.sfLD;
     const toda = num("toda"), lda = num("lda");
@@ -577,7 +622,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     const todrBad = todr !== null && toda !== null && Math.round(todr) > toda;
     const ldrBad = ldr !== null && lda !== null && Math.round(ldr) > lda;
     $("rowTODR").classList.toggle("bad", todrBad); $("rowLDR").classList.toggle("bad", ldrBad);
-    $("distFormula").textContent = `Corrected = chart ${tail ? "+ tailwind" : "− headwind"} (${hwKt} kt × ${tail ? (P.toTw ?? "?") + " / " + (P.ldTw ?? "?") : (P.toHw ?? "?") + " / " + (P.ldHw ?? "?")} ft/kt) · TODR = × ${P.sfTO ?? "?"} · LDR = × ${P.sfLD ?? "?"}`;
+    $("distFormula").textContent = `Corrected = chart + runway (${grass ? "grass +10 % GR, " : ""}slope ${fmt(slope, 1)} %) ${tail ? "+ tailwind" : "− headwind"} (${hwKt} kt × ${tail ? (P.toTw ?? "?") + " / " + (P.ldTw ?? "?") : (P.toHw ?? "?") + " / " + (P.ldHw ?? "?")} ft/kt) · TODR = × ${P.sfTO ?? "?"} · LDR = × ${P.sfLD ?? "?"}`;
 
     // Checks
     const C = [];
@@ -585,8 +630,11 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
       C.push(towBad ? ["nogo", `Takeoff weight ${fmt(toW, 0)} lbs > ${P.mtow} lbs (over by ${fmt(toW - P.mtow, 0)} lbs)`] : ["go", `Takeoff weight ${fmt(toW, 0)} lbs ≤ ${P.mtow} lbs`]);
       C.push(lwBad ? ["nogo", `Landing weight ${fmt(ldW, 0)} lbs > ${P.mlw} lbs`] : ["go", `Landing weight ${fmt(ldW, 0)} lbs ≤ ${P.mlw} lbs`]);
       C.push(toMacOk ? ["go", `Takeoff CG ${fmt(toMac, 1)} % within ${P.macMin}–${P.macMax} %`] : ["nogo", `Takeoff CG ${fmt(toMac, 1)} % outside limits ${P.macMin}–${P.macMax} %`]);
+      if (P.bagMax && n0("bag") > P.bagMax) C.push(["nogo", `Baggage ${fmt(n0("bag"), 0)} lbs > ${P.bagMax} lbs`]);
+      if (P.fuelMax && n0("fuelLb") > P.fuelMax) C.push(["nogo", `Fuel ${fmt(n0("fuelLb"), 0)} lbs > ${P.fuelMax} lbs usable`]);
       C.push(ldMacOk ? ["go", `Landing CG ${fmt(ldMac, 1)} % within ${P.macMin}–${P.macMax} %`] : ["nogo", `Landing CG ${fmt(ldMac, 1)} % outside limits ${P.macMin}–${P.macMax} %`]);
     }
+    chartMsgs.forEach((m) => C.push(["warn", m.charAt(0).toUpperCase() + m.slice(1)]));
     if (tail && (cTO.v === null || cLD.v === null)) C.push(["warn", "Tailwind: enter the POH tailwind correction in the parameters"]);
     if (todr !== null && toda !== null) C.push(todrBad ? ["nogo", `TODR ${fmtInt(todr)} ft > TODA ${toda} ft`] : ["go", `TODR ${fmtInt(todr)} ft ≤ TODA ${toda} ft`]);
     if (ldr !== null && lda !== null) C.push(ldrBad ? ["nogo", `LDR ${fmtInt(ldr)} ft > LDA ${lda} ft`] : ["go", `LDR ${fmtInt(ldr)} ft ≤ LDA ${lda} ft`]);
@@ -598,7 +646,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     $("checks").innerHTML = C.length ? C.map(([s, t]) => `<li><span class="pill ${s}">${s === "go" ? "OK" : s === "nogo" ? "NO GO" : "CHECK"}</span><span>${t}</span></li>`).join("") : `<li><span class="pill warn">—</span><span>Enter data to run the checks.</span></li>`;
 
     // Verdict chips
-    const mbState = !hasMB ? "warn" : (towBad || lwBad || !toMacOk || !ldMacOk) ? "nogo" : "go";
+    const mbState = !hasMB ? "warn" : (towBad || lwBad || !toMacOk || !ldMacOk || (P.bagMax && n0("bag") > P.bagMax) || (P.fuelMax && n0("fuelLb") > P.fuelMax)) ? "nogo" : "go";
     const pfHas = todr !== null || ldr !== null;
     const pfState = !pfHas ? "warn" : (todrBad || ldrBad || xwBad) ? "nogo" : (C.some(c => c[0] === "warn") ? "warn" : "go");
     const chip = (k, s) => `<div class="vchip ${s}"><div class="k">${k}</div><div class="v">${s === "go" ? "GO" : s === "nogo" ? "NO GO" : "INCOMPLETE"}</div></div>`;
