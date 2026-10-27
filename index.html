@@ -84,7 +84,7 @@ button:hover { filter: brightness(.97); }
 #btnMetar { background: var(--accent); color: #fff; }
 button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 0; box-shadow: 0 0 0 1px var(--accent); }
 
-main.grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; padding-bottom: 40px; }
+main.grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; padding-bottom: 40px; margin-top: 12px; }
 /* Segmented control */
 .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 2px; margin-top: 16px; background: var(--seg); border-radius: 10px; max-width: 520px; }
 .tabs button { border: 0; border-radius: 8px; background: none; color: var(--ink); min-height: 34px; padding: 6px 8px; font: 500 14px var(--f-body); white-space: nowrap; }
@@ -118,6 +118,16 @@ table.taf tr.tempo td { background: var(--field); }
 .sky { display: flex; flex-direction: column; gap: 2px; font-size: 13px; white-space: nowrap; }
 .sky span { display: inline-flex; align-items: center; gap: 5px; }
 .empty { color: var(--muted); font-size: 14px; }
+/* Hour-by-hour strip, like the hourly row of a weather app; scrolls sideways on phone. */
+.hours { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(132px, 1fr); gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 4px; }
+.hour { scroll-snap-align: start; background: var(--field); border-radius: 14px; padding: 10px 12px 12px; display: grid; gap: 6px; align-content: start; font-size: 13px; border-top: 4px solid var(--seg); }
+.hour.VFR { border-top-color: var(--vfr); } .hour.MVFR { border-top-color: var(--mvfr); } .hour.IFR { border-top-color: var(--ifr); } .hour.LIFR { border-top-color: var(--lifr); }
+.hour .h { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.hour .h b { font: 700 17px var(--f-display); letter-spacing: -.015em; }
+.hour .h small { color: var(--muted); font-size: 11px; }
+.hour .muted { color: var(--muted); }
+.hour .tmp { border-top: .5px solid var(--line); padding-top: 6px; color: var(--warn); font-size: 12px; display: grid; gap: 2px; }
+.hour .tmp b { font-weight: 600; }
 section.panel { background: var(--panel); border-radius: 18px; box-shadow: var(--shadow); min-width: 0; overflow: hidden; }
 .panel > h2 { margin: 0; font: 700 22px var(--f-display); letter-spacing: -.02em; padding: 18px 20px 4px; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 .panel > h2 small { font: 400 13px var(--f-body); color: var(--muted); }
@@ -359,6 +369,10 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
       <h2 id="taf-h">TAF <small id="tafIcao">—</small></h2>
       <div class="body">
         <div class="taf-head" id="tafHead"><span class="empty">Loading the forecast for the performance airport…</span></div>
+        <div>
+          <h3 style="margin-bottom:8px">Next 6 hours</h3>
+          <div class="hours" id="tafHours"></div>
+        </div>
         <div>
           <h3 style="margin-bottom:8px">Flight category over the forecast</h3>
           <div class="timeline" id="tafTimeline"></div>
@@ -609,7 +623,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     if (!t) {
       WXCAT = null;
       $("tafHead").innerHTML = `<span class="empty">${TAF ? "No TAF available for " + TAF.icao + "." : "Fetch the weather in the Performance tab to load the TAF."}</span>`;
-      $("tafTimeline").innerHTML = ""; $("tafBody").innerHTML = ""; $("tafRaw").textContent = "—"; return;
+      $("tafTimeline").innerHTML = ""; $("tafHours").innerHTML = ""; $("tafBody").innerHTML = ""; $("tafRaw").textContent = "—"; return;
     }
     const issued = t.issueTime ? new Date(t.issueTime) : null;
     const age = issued ? Math.round((Date.now() - issued) / 60000) : null;
@@ -650,19 +664,40 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     // Table
     const rwy = num("rwy"), xmax = num("xwMax");
     $("tafRwy").textContent = rwy !== null ? `(${String(Math.round(rwy / 10)).padStart(2, "0")})` : "";
+    const windOf = (r) => {
+      if (r.wspd === null || r.wspd === undefined) return ["—", "—"];
+      const calm = +r.wspd === 0;
+      const wind = calm ? "Calm" : `<span class="wind">${windSvg(r.wdir)}<span>${r.wdir === "VRB" || r.wdir === null ? "VRB" : String(r.wdir).padStart(3, "0") + "°"} ${r.wspd}${r.wgst ? "G" + r.wgst : ""} kt</span></span>`;
+      let comp = "—";
+      if (rwy !== null && typeof r.wdir === "number" && !calm) {
+        const a = (r.wdir - rwy) * Math.PI / 180, sp = r.wgst || r.wspd;
+        const hw = Math.cos(a) * r.wspd, xw = Math.sin(a) * sp;
+        comp = `<span class="comp">${hw >= 0 ? "Head" : "<b class=\"bad\">Tail</b>"} <b>${Math.abs(Math.round(hw))}</b> · Cross <b class="${xmax && Math.abs(xw) > xmax ? "bad" : ""}">${Math.abs(Math.round(xw))}</b>${Math.abs(xw) >= .5 ? (xw > 0 ? "R" : "L") : ""}</span>`;
+      }
+      return [wind, comp];
+    };
+    const visTxt = (r) => r.visib === null || r.visib === undefined ? "—" : String(r.visib).endsWith("+") ? "&gt;&nbsp;" + parseFloat(r.visib) + "&nbsp;SM" : r.visib + "&nbsp;SM";
+    const ceilTxt = (r) => { const c = ceilingOf(r); return c === null ? "No ceiling" : "Ceiling " + Number(c).toLocaleString() + " ft"; };
+    // Hour by hour: the prevailing period for each hour, plus any TEMPO / PROB group overlapping it.
+    const h0 = Math.floor(now / 3600) * 3600;
+    let hours = "";
+    for (let h = h0; h < h0 + 6 * 3600; h += 3600) {
+      if (h + 3600 <= T0 || h >= T1) continue;
+      const base = rows.filter((r) => !r.tempo && r.timeFrom <= Math.max(h, T0) && r.timeTo > Math.max(h, T0)).pop();
+      if (!base) continue;
+      const tmp = rows.filter((r) => r.tempo && r.timeFrom < h + 3600 && r.timeTo > h);
+      const cat = category(base), [wind, comp] = windOf(base), d = new Date(h * 1000);
+      hours += `<div class="hour ${cat || ""}"><div class="h"><b>${h === h0 ? "Now" : String(d.getHours()).padStart(2, "0") + ":00"}</b><small>${String(d.getUTCHours()).padStart(2, "0")}Z</small></div>` +
+        `<div>${wind}</div><div>${comp}</div>` +
+        `<div class="wx">${wxSvg(base)}<span>${visTxt(base)}${base.wxString ? " " + decodeWx(base.wxString) : ""}</span></div>` +
+        `<div class="muted">${ceilTxt(base)}</div>${cat ? `<div><span class="cat ${cat}">${cat}</span></div>` : ""}` +
+        tmp.map((r) => { const c = category(r); return `<div class="tmp"><b>${r.change === "TEMPO" ? "TEMPO" : "PROB" + (r.prob || "")}${c ? " " + c : ""}</b><span>${visTxt(r)}${r.wxString ? " " + decodeWx(r.wxString) : ""}${ceilingOf(r) !== null ? ", ceiling " + Number(ceilingOf(r)).toLocaleString() + " ft" : ""}</span></div>`; }).join("") +
+        `</div>`;
+    }
+    $("tafHours").innerHTML = hours || '<span class="empty">The TAF does not cover the next hours.</span>';
     $("tafBody").innerHTML = rows.map((r) => {
       const chg = r.change === "FM" ? "FROM" : r.change === "BECMG" ? "BECMG" : r.change === "TEMPO" ? "TEMPO" : r.prob ? "PROB" + r.prob : r.change || "BASE";
-      let wind = "—", comp = "—";
-      if (r.wspd !== null && r.wspd !== undefined) {
-        const calm = +r.wspd === 0;
-        wind = calm ? "Calm" : `<span class="wind">${windSvg(r.wdir)}<span>${r.wdir === "VRB" || r.wdir === null ? "VRB" : String(r.wdir).padStart(3, "0") + "°"} ${r.wspd}${r.wgst ? "G" + r.wgst : ""} kt</span></span>`;
-        if (rwy !== null && typeof r.wdir === "number") {
-          const a = (r.wdir - rwy) * Math.PI / 180, sp = r.wgst || r.wspd;
-          const hw = Math.cos(a) * r.wspd, xw = Math.sin(a) * sp;
-          comp = `<span class="comp">${hw >= 0 ? "Head" : "<b class=\"bad\">Tail</b>"} <b>${Math.abs(Math.round(hw))}</b> · Cross <b class="${xmax && Math.abs(xw) > xmax ? "bad" : ""}">${Math.abs(Math.round(xw))}</b>${Math.abs(xw) >= .5 ? (xw > 0 ? "R" : "L") : ""}</span>`;
-        } else if (calm) comp = "—";
-      }
-      const v = r.visib === null || r.visib === undefined ? "—" : String(r.visib).endsWith("+") ? "&gt;&nbsp;" + parseFloat(r.visib) + "&nbsp;SM" : r.visib + "&nbsp;SM";
+      const [wind, comp] = windOf(r), v = visTxt(r);
       const sky = (r.clouds.length ? r.clouds.map((l) => `<span>${skySvg(l.cover)}${l.cover}${l.base !== null && l.base !== undefined ? " " + Number(l.base).toLocaleString() + " ft" : ""}${l.type ? " " + l.type : ""}</span>`).join("") : '<span>Clear</span>') +
         (r.vertVis ? `<span>VV ${Number(r.vertVis).toLocaleString()} ft</span>` : "");
       const cat = category(r);
