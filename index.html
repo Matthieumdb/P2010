@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<title>P2010 Préparation vol</title>
+<title>P2010 Flight Prep</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -141,9 +141,9 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
 <header class="band">
   <div class="wrap">
     <div class="brand">
-      <span class="reg">Tecnam P2010 · préparation vol</span>
-      <h1>Masse &amp; centrage · Performances</h1>
-      <p>Méthode des fiches European Flight Training (M&amp;B v3, Aircraft Performance v1)</p>
+      <span class="reg">Tecnam P2010 · flight preparation</span>
+      <h1>Weight &amp; Balance · Performance</h1>
+      <p>Based on the European Flight Training forms (M&amp;B v3, Aircraft Performance v1)</p>
     </div>
     <div class="verdict" id="verdict"></div>
   </div>
@@ -151,66 +151,66 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
 
 <div class="wrap">
   <div class="toolbar">
-    <label for="acSel" class="tlabel">Avion</label>
+    <label for="acSel" class="tlabel">Aircraft</label>
     <select id="acSel" class="acsel"></select>
-    <button type="button" id="btnClear">Vider les saisies</button>
+    <button type="button" id="btnClear">Clear entries</button>
     <span class="note" id="exNote"></span>
   </div>
 
   <main class="grid">
     <!-- MASS & BALANCE -->
     <section class="panel" aria-labelledby="mb-h">
-      <h2 id="mb-h">Masse &amp; centrage <small>lbs · m · lbs·m</small></h2>
+      <h2 id="mb-h">Weight &amp; balance <small>lbs · m · lbs·m</small></h2>
       <div class="body">
         <div class="tbl-wrap">
           <table id="mbTable">
-            <thead><tr><th>Poste</th><th>Poids</th><th>Bras</th><th>Moment</th></tr></thead>
+            <thead><tr><th>Item</th><th>Weight</th><th>Arm</th><th>Moment</th></tr></thead>
             <tbody>
-              <tr><td class="lbl">Masse à vide de base<span id="bewSrc">selon l'avion choisi</span></td>
+              <tr><td class="lbl">Basic empty weight<span id="bewSrc">from selected aircraft</span></td>
                 <td class="num" id="bew">—</td>
                 <td class="num" id="bewArm">—</td>
                 <td class="num" id="bewMom">—</td></tr>
-              <tr><td class="lbl">Pilote</td><td><input class="w" id="pilot" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armFront"></td><td class="num" id="m_pilot"></td></tr>
-              <tr><td class="lbl">Copilote</td><td><input class="w" id="copilot" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armFront"></td><td class="num" id="m_copilot"></td></tr>
-              <tr><td class="lbl">Passager 1</td><td><input class="w" id="pax1" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armRear"></td><td class="num" id="m_pax1"></td></tr>
-              <tr><td class="lbl">Passager 2</td><td><input class="w" id="pax2" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armRear"></td><td class="num" id="m_pax2"></td></tr>
-              <tr><td class="lbl">Bagages</td><td><input class="w" id="bag" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armBag"></td><td class="num" id="m_bag"></td></tr>
-              <tr><td class="lbl">Carburant<span>en gallons US · <b id="fuelLbs">0</b> lbs</span></td><td><input class="w" id="fuelGal" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armFuel"></td><td class="num" id="m_fuel"></td></tr>
-              <tr class="deduct"><td class="lbl">− Roulage<span>gal · <b id="taxiLbs">0</b> lbs</span></td><td><input class="w" id="taxiGal" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armFuel"></td><td class="num" id="m_taxi"></td></tr>
-              <tr class="sub" id="rowTO"><td class="lbl">Décollage</td><td class="num" id="toW"></td><td class="num" id="toArm"></td><td class="num" id="toMom"></td></tr>
-              <tr class="deduct"><td class="lbl">− Carburant consommé en vol<span>gal · <b id="tripLbs">0</b> lbs</span></td><td><input class="w" id="tripGal" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armFuel"></td><td class="num" id="m_trip"></td></tr>
-              <tr class="sub" id="rowLDG"><td class="lbl">Atterrissage</td><td class="num" id="ldW"></td><td class="num" id="ldArm"></td><td class="num" id="ldMom"></td></tr>
+              <tr><td class="lbl">Pilot</td><td><input class="w" id="pilot" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armFront"></td><td class="num" id="m_pilot"></td></tr>
+              <tr><td class="lbl">Co-pilot</td><td><input class="w" id="copilot" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armFront"></td><td class="num" id="m_copilot"></td></tr>
+              <tr><td class="lbl">Passenger 1</td><td><input class="w" id="pax1" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armRear"></td><td class="num" id="m_pax1"></td></tr>
+              <tr><td class="lbl">Passenger 2</td><td><input class="w" id="pax2" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armRear"></td><td class="num" id="m_pax2"></td></tr>
+              <tr><td class="lbl">Baggage</td><td><input class="w" id="bag" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armBag"></td><td class="num" id="m_bag"></td></tr>
+              <tr><td class="lbl">Fuel<span>lbs · <b id="fuelGalOut">0</b> US gal</span></td><td><input class="w" id="fuelLb" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armFuel"></td><td class="num" id="m_fuel"></td></tr>
+              <tr class="deduct"><td class="lbl">− Taxi fuel<span>lbs · <b id="taxiGalOut">0</b> US gal</span></td><td><input class="w" id="taxiLb" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armFuel"></td><td class="num" id="m_taxi"></td></tr>
+              <tr class="sub" id="rowTO"><td class="lbl">Takeoff</td><td class="num" id="toW"></td><td class="num" id="toArm"></td><td class="num" id="toMom"></td></tr>
+              <tr class="deduct"><td class="lbl">− Fuel burned in flight<span>lbs · <b id="tripGalOut">0</b> US gal</span></td><td><input class="w" id="tripLb" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armFuel"></td><td class="num" id="m_trip"></td></tr>
+              <tr class="sub" id="rowLDG"><td class="lbl">Landing</td><td class="num" id="ldW"></td><td class="num" id="ldArm"></td><td class="num" id="ldMom"></td></tr>
             </tbody>
           </table>
         </div>
 
         <div class="out">
-          <div class="cell" id="cTOW"><div class="k">Masse décollage</div><div class="v" id="oTOW">—</div><div class="s" id="sTOW"></div></div>
-          <div class="cell" id="cTOMAC"><div class="k">Centrage déco</div><div class="v" id="oTOMAC">—</div><div class="s">% MAC</div></div>
-          <div class="cell" id="cLW"><div class="k">Masse atterrissage</div><div class="v" id="oLW">—</div><div class="s" id="sLW"></div></div>
-          <div class="cell" id="cLMAC"><div class="k">Centrage atterro</div><div class="v" id="oLMAC">—</div><div class="s">% MAC</div></div>
+          <div class="cell" id="cTOW"><div class="k">Takeoff weight</div><div class="v" id="oTOW">—</div><div class="s" id="sTOW"></div></div>
+          <div class="cell" id="cTOMAC"><div class="k">Takeoff CG</div><div class="v" id="oTOMAC">—</div><div class="s">% MAC</div></div>
+          <div class="cell" id="cLW"><div class="k">Landing weight</div><div class="v" id="oLW">—</div><div class="s" id="sLW"></div></div>
+          <div class="cell" id="cLMAC"><div class="k">Landing CG</div><div class="v" id="oLMAC">—</div><div class="s">% MAC</div></div>
         </div>
 
         <div class="gauge">
-          <h3>Position du centrage</h3>
-          <svg id="cgSvg" viewBox="0 0 520 74" role="img" aria-label="Centrage au décollage et à l'atterrissage par rapport aux limites"></svg>
-          <p class="formula">% MAC = bras / <span data-val="macDiv"></span> × 100 · limites <span data-val="macMin"></span>–<span data-val="macMax"></span> %</p>
+          <h3>CG position</h3>
+          <svg id="cgSvg" viewBox="0 0 520 74" role="img" aria-label="Takeoff and landing CG against the limits"></svg>
+          <p class="formula">% MAC = arm / <span data-val="macDiv"></span> × 100 · limits <span data-val="macMin"></span>–<span data-val="macMax"></span> %</p>
         </div>
       </div>
     </section>
 
     <!-- PERFORMANCE -->
     <section class="panel" aria-labelledby="pf-h">
-      <h2 id="pf-h">Performances <small>ft · kt · °C · inHg</small></h2>
+      <h2 id="pf-h">Performance <small>ft · kt · °C · inHg</small></h2>
       <div class="body">
         <div class="icao-row">
-          <div class="field"><label for="icao">Aéroport de départ (code OACI)</label><input id="icao" type="text" maxlength="4" autocomplete="off" spellcheck="false" placeholder="KSFB"></div>
-          <button type="button" id="btnMetar">Récupérer le METAR</button>
-          <div class="field"><label for="rwySel">Piste</label><select id="rwySel"><option value="">— choisir après recherche —</option></select></div>
+          <div class="field"><label for="icao">Departure airport (ICAO code)</label><input id="icao" type="text" maxlength="4" autocomplete="off" spellcheck="false" placeholder="KSFB"></div>
+          <button type="button" id="btnMetar">Get METAR</button>
+          <div class="field"><label for="rwySel">Runway</label><select id="rwySel"><option value="">— search first —</option></select></div>
         </div>
         <div class="status" id="wxStatus"></div>
         <div class="field">
-          <label for="metar">METAR (récupéré automatiquement, ou à coller)</label>
+          <label for="metar">METAR (fetched automatically, or paste it)</label>
           <input class="wide" id="metar" type="text" autocomplete="off" spellcheck="false" placeholder="LFPN 271200Z 22018G20KT 9999 24/24 Q1015">
           <div class="metar-parsed" id="metarParsed"></div>
         </div>
@@ -218,36 +218,36 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
         <div>
           <h3 style="margin-bottom:8px">Conditions</h3>
           <div class="fields">
-            <div class="field"><label for="elev">Altitude terrain</label><div class="row"><input id="elev" type="number" step="any" inputmode="decimal"><span class="unit">ft</span></div></div>
-            <div class="field"><label for="alt">Calage altimètre</label><div class="row"><input id="alt" type="number" step="0.01" inputmode="decimal"><span class="unit">inHg</span></div></div>
-            <div class="field"><label for="oat">Température</label><div class="row"><input id="oat" type="number" step="any" inputmode="decimal"><span class="unit">°C</span></div></div>
-            <div class="field"><label for="wdir">Vent direction</label><div class="row"><input id="wdir" type="number" step="any" inputmode="decimal"><span class="unit">°</span></div></div>
-            <div class="field"><label for="wspd">Vent force</label><div class="row"><input id="wspd" type="number" step="any" inputmode="decimal"><span class="unit">kt</span></div></div>
-            <div class="field"><label for="wgst">Rafales</label><div class="row"><input id="wgst" type="number" step="any" inputmode="decimal"><span class="unit">kt</span></div></div>
-            <div class="field"><label for="rwy">Cap de piste</label><div class="row"><input id="rwy" type="number" step="any" inputmode="decimal"><span class="unit">°</span></div></div>
+            <div class="field"><label for="elev">Field elevation</label><div class="row"><input id="elev" type="number" step="any" inputmode="decimal"><span class="unit">ft</span></div></div>
+            <div class="field"><label for="alt">Altimeter setting</label><div class="row"><input id="alt" type="number" step="0.01" inputmode="decimal"><span class="unit">inHg</span></div></div>
+            <div class="field"><label for="oat">Temperature</label><div class="row"><input id="oat" type="number" step="any" inputmode="decimal"><span class="unit">°C</span></div></div>
+            <div class="field"><label for="wdir">Wind direction</label><div class="row"><input id="wdir" type="number" step="any" inputmode="decimal"><span class="unit">°</span></div></div>
+            <div class="field"><label for="wspd">Wind speed</label><div class="row"><input id="wspd" type="number" step="any" inputmode="decimal"><span class="unit">kt</span></div></div>
+            <div class="field"><label for="wgst">Gusts</label><div class="row"><input id="wgst" type="number" step="any" inputmode="decimal"><span class="unit">kt</span></div></div>
+            <div class="field"><label for="rwy">Runway heading</label><div class="row"><input id="rwy" type="number" step="any" inputmode="decimal"><span class="unit">°</span></div></div>
             <div class="field"><label for="toda">TODA</label><div class="row"><input id="toda" type="number" step="any" inputmode="decimal"><span class="unit">ft</span></div></div>
             <div class="field"><label for="lda">LDA</label><div class="row"><input id="lda" type="number" step="any" inputmode="decimal"><span class="unit">ft</span></div></div>
           </div>
         </div>
 
         <div class="out">
-          <div class="cell"><div class="k">Alt. pression</div><div class="v" id="oPA">—</div><div class="s">ft</div></div>
-          <div class="cell"><div class="k">Alt. densité</div><div class="v" id="oDA">—</div><div class="s" id="sDA">ft</div></div>
-          <div class="cell" id="cHW"><div class="k" id="kHW">Vent de face</div><div class="v" id="oHW">—</div><div class="s" id="sHW">kt</div></div>
-          <div class="cell" id="cXW"><div class="k">Vent traversier</div><div class="v" id="oXW">—</div><div class="s" id="sXW">kt</div></div>
+          <div class="cell"><div class="k">Pressure alt.</div><div class="v" id="oPA">—</div><div class="s">ft</div></div>
+          <div class="cell"><div class="k">Density alt.</div><div class="v" id="oDA">—</div><div class="s" id="sDA">ft</div></div>
+          <div class="cell" id="cHW"><div class="k" id="kHW">Headwind</div><div class="v" id="oHW">—</div><div class="s" id="sHW">kt</div></div>
+          <div class="cell" id="cXW"><div class="k">Crosswind</div><div class="v" id="oXW">—</div><div class="s" id="sXW">kt</div></div>
         </div>
 
         <div>
           <h3 style="margin-bottom:8px">Distances</h3>
-          <p class="hint" style="margin-bottom:8px">Saisissez les valeurs lues dans les abaques du manuel de vol (à la masse, l'altitude pression et la température du jour). La correction de vent et le coefficient de sécurité sont appliqués ici.</p>
+          <p class="hint" style="margin-bottom:8px">Enter the values read from the POH charts (for today's weight, pressure altitude and temperature). The wind correction and safety factor are applied here.</p>
           <div class="tbl-wrap">
             <table class="dist">
-              <thead><tr><th>Distance</th><th>Abaque</th><th>Corr. vent</th><th>Corrigée</th><th>× CS</th><th>Dispo.</th></tr></thead>
+              <thead><tr><th>Distance</th><th>Chart</th><th>Wind corr.</th><th>Corrected</th><th>× SF</th><th>Avail.</th></tr></thead>
               <tbody>
-                <tr><td class="lbl">Roulage décollage</td><td><input class="w" id="toGR" type="number" step="any" inputmode="decimal"></td><td class="num" id="toGRc"></td><td class="num" id="toGRr"></td><td class="num">—</td><td class="num">—</td></tr>
-                <tr class="sub" id="rowTODR"><td class="lbl">Décollage 50 ft (TODR)</td><td><input class="w" id="toD" type="number" step="any" inputmode="decimal"></td><td class="num" id="toDc"></td><td class="num" id="toDr"></td><td class="num" id="todrOut"></td><td class="num" id="todaOut"></td></tr>
-                <tr><td class="lbl">Roulage atterrissage</td><td><input class="w" id="ldGR" type="number" step="any" inputmode="decimal"></td><td class="num" id="ldGRc"></td><td class="num" id="ldGRr"></td><td class="num">—</td><td class="num">—</td></tr>
-                <tr class="sub" id="rowLDR"><td class="lbl">Atterrissage 50 ft (LDR)</td><td><input class="w" id="ldD" type="number" step="any" inputmode="decimal"></td><td class="num" id="ldDc"></td><td class="num" id="ldDr"></td><td class="num" id="ldrOut"></td><td class="num" id="ldaOut"></td></tr>
+                <tr><td class="lbl">Takeoff ground roll</td><td><input class="w" id="toGR" type="number" step="any" inputmode="decimal"></td><td class="num" id="toGRc"></td><td class="num" id="toGRr"></td><td class="num">—</td><td class="num">—</td></tr>
+                <tr class="sub" id="rowTODR"><td class="lbl">Takeoff over 50 ft (TODR)</td><td><input class="w" id="toD" type="number" step="any" inputmode="decimal"></td><td class="num" id="toDc"></td><td class="num" id="toDr"></td><td class="num" id="todrOut"></td><td class="num" id="todaOut"></td></tr>
+                <tr><td class="lbl">Landing ground roll</td><td><input class="w" id="ldGR" type="number" step="any" inputmode="decimal"></td><td class="num" id="ldGRc"></td><td class="num" id="ldGRr"></td><td class="num">—</td><td class="num">—</td></tr>
+                <tr class="sub" id="rowLDR"><td class="lbl">Landing over 50 ft (LDR)</td><td><input class="w" id="ldD" type="number" step="any" inputmode="decimal"></td><td class="num" id="ldDc"></td><td class="num" id="ldDr"></td><td class="num" id="ldrOut"></td><td class="num" id="ldaOut"></td></tr>
               </tbody>
             </table>
           </div>
@@ -255,45 +255,45 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
         </div>
 
         <div>
-          <h3 style="margin-bottom:8px">Vérifications</h3>
+          <h3 style="margin-bottom:8px">Checks</h3>
           <ul class="checks" id="checks"></ul>
         </div>
       </div>
 
       <details class="params" id="params">
-        <summary>Paramètres avion et méthode de calcul</summary>
+        <summary>Aircraft parameters and calculation method</summary>
         <div class="body">
-          <p class="hint">Valeurs reprises des fiches de l'école. Celles marquées <span class="tbc">à confirmer</span> doivent être vérifiées dans le manuel de vol de votre avion.</p>
+          <p class="hint">Values taken from the school forms. Those marked <span class="tbc">to confirm</span> must be checked against your aircraft's POH.</p>
           <div class="fields">
-            <div class="field"><label for="armFront">Bras sièges avant</label><div class="row"><input id="armFront" type="number" step="any"><span class="unit">m</span></div></div>
-            <div class="field"><label for="armRear">Bras sièges arrière</label><div class="row"><input id="armRear" type="number" step="any"><span class="unit">m</span></div></div>
-            <div class="field"><label for="armBag">Bras bagages</label><div class="row"><input id="armBag" type="number" step="any"><span class="unit">m</span></div></div>
-            <div class="field"><label for="armFuel">Bras carburant</label><div class="row"><input id="armFuel" type="number" step="any"><span class="unit">m</span></div></div>
-            <div class="field"><label for="fuelDens">Densité carburant</label><div class="row"><input id="fuelDens" type="number" step="any"><span class="unit">lbs/gal</span></div></div>
-            <div class="field"><label for="mtow">Masse max décollage</label><div class="row"><input id="mtow" type="number" step="any"><span class="unit">lbs</span></div></div>
-            <div class="field"><label for="mlw">Masse max atterrissage <span class="tbc">à confirmer</span></label><div class="row"><input id="mlw" type="number" step="any"><span class="unit">lbs</span></div></div>
-            <div class="field"><label for="macDiv">Diviseur % MAC</label><div class="row"><input id="macDiv" type="number" step="any"><span class="unit">m</span></div></div>
-            <div class="field"><label for="macMin">Limite avant</label><div class="row"><input id="macMin" type="number" step="any"><span class="unit">% MAC</span></div></div>
-            <div class="field"><label for="macMax">Limite arrière</label><div class="row"><input id="macMax" type="number" step="any"><span class="unit">% MAC</span></div></div>
-            <div class="field"><label for="toHw">Déco : vent de face</label><div class="row"><input id="toHw" type="number" step="any"><span class="unit">ft/kt</span></div></div>
-            <div class="field"><label for="toTw">Déco : vent arrière <span class="tbc">à confirmer</span></label><div class="row"><input id="toTw" type="number" step="any" placeholder="POH"><span class="unit">ft/kt</span></div></div>
-            <div class="field"><label for="ldHw">Atterro : vent de face</label><div class="row"><input id="ldHw" type="number" step="any"><span class="unit">ft/kt</span></div></div>
-            <div class="field"><label for="ldTw">Atterro : vent arrière <span class="tbc">à confirmer</span></label><div class="row"><input id="ldTw" type="number" step="any" placeholder="POH"><span class="unit">ft/kt</span></div></div>
-            <div class="field"><label for="sfTO">CS décollage</label><div class="row"><input id="sfTO" type="number" step="any"><span class="unit">×</span></div></div>
-            <div class="field"><label for="sfLD">CS atterrissage</label><div class="row"><input id="sfLD" type="number" step="any"><span class="unit">×</span></div></div>
-            <div class="field"><label for="xwMax">Vent traversier max <span class="tbc">à confirmer</span></label><div class="row"><input id="xwMax" type="number" step="any" placeholder="POH"><span class="unit">kt</span></div></div>
-            <div class="field"><label for="isaMode">Écart ISA calculé avec</label>
-              <select id="isaMode"><option value="sl">ISA 15 °C (comme la fiche)</option><option value="pa">ISA à l'altitude pression</option></select></div>
-            <div class="field"><label for="gustMode">Vent utilisé</label>
-              <select id="gustMode"><option value="steady">Vent moyen (comme la fiche)</option><option value="gust">Rafales</option></select></div>
+            <div class="field"><label for="armFront">Front seats arm</label><div class="row"><input id="armFront" type="number" step="any"><span class="unit">m</span></div></div>
+            <div class="field"><label for="armRear">Rear seats arm</label><div class="row"><input id="armRear" type="number" step="any"><span class="unit">m</span></div></div>
+            <div class="field"><label for="armBag">Baggage arm</label><div class="row"><input id="armBag" type="number" step="any"><span class="unit">m</span></div></div>
+            <div class="field"><label for="armFuel">Fuel arm</label><div class="row"><input id="armFuel" type="number" step="any"><span class="unit">m</span></div></div>
+            <div class="field"><label for="fuelDens">Fuel density</label><div class="row"><input id="fuelDens" type="number" step="any"><span class="unit">lbs/gal</span></div></div>
+            <div class="field"><label for="mtow">Max takeoff weight</label><div class="row"><input id="mtow" type="number" step="any"><span class="unit">lbs</span></div></div>
+            <div class="field"><label for="mlw">Max landing weight <span class="tbc">to confirm</span></label><div class="row"><input id="mlw" type="number" step="any"><span class="unit">lbs</span></div></div>
+            <div class="field"><label for="macDiv">% MAC divisor</label><div class="row"><input id="macDiv" type="number" step="any"><span class="unit">m</span></div></div>
+            <div class="field"><label for="macMin">Forward limit</label><div class="row"><input id="macMin" type="number" step="any"><span class="unit">% MAC</span></div></div>
+            <div class="field"><label for="macMax">Aft limit</label><div class="row"><input id="macMax" type="number" step="any"><span class="unit">% MAC</span></div></div>
+            <div class="field"><label for="toHw">T/O: headwind</label><div class="row"><input id="toHw" type="number" step="any"><span class="unit">ft/kt</span></div></div>
+            <div class="field"><label for="toTw">T/O: tailwind <span class="tbc">to confirm</span></label><div class="row"><input id="toTw" type="number" step="any" placeholder="POH"><span class="unit">ft/kt</span></div></div>
+            <div class="field"><label for="ldHw">LDG: headwind</label><div class="row"><input id="ldHw" type="number" step="any"><span class="unit">ft/kt</span></div></div>
+            <div class="field"><label for="ldTw">LDG: tailwind <span class="tbc">to confirm</span></label><div class="row"><input id="ldTw" type="number" step="any" placeholder="POH"><span class="unit">ft/kt</span></div></div>
+            <div class="field"><label for="sfTO">T/O safety factor</label><div class="row"><input id="sfTO" type="number" step="any"><span class="unit">×</span></div></div>
+            <div class="field"><label for="sfLD">LDG safety factor</label><div class="row"><input id="sfLD" type="number" step="any"><span class="unit">×</span></div></div>
+            <div class="field"><label for="xwMax">Max crosswind <span class="tbc">to confirm</span></label><div class="row"><input id="xwMax" type="number" step="any" placeholder="POH"><span class="unit">kt</span></div></div>
+            <div class="field"><label for="isaMode">ISA deviation based on</label>
+              <select id="isaMode"><option value="sl">ISA 15 °C (as on the form)</option><option value="pa">ISA at pressure altitude</option></select></div>
+            <div class="field"><label for="gustMode">Wind used</label>
+              <select id="gustMode"><option value="steady">Steady wind (as on the form)</option><option value="gust">Gusts</option></select></div>
           </div>
-          <div><button type="button" id="btnReset">Rétablir les paramètres de l'avion</button></div>
+          <div><button type="button" id="btnReset">Reset aircraft parameters</button></div>
         </div>
       </details>
     </section>
   </main>
 
-  <footer>Outil d'aide à la préparation. Le manuel de vol (POH/AFM) de l'avion fait foi ; le commandant de bord reste responsable de la décision.</footer>
+  <footer>Flight preparation aid only. The aircraft POH/AFM is the reference, and the pilot in command remains responsible for the decision.</footer>
 </div>
 
 <script src="aircraft.js"></script>
@@ -305,7 +305,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     toHw: 33, toTw: "", ldHw: 13, ldTw: "", sfTO: 1.33, sfLD: 1.43, xwMax: "",
     isaMode: "sl", gustMode: "steady"
   };
-  const INPUT_IDS = ["pilot", "copilot", "pax1", "pax2", "bag", "fuelGal", "taxiGal", "tripGal",
+  const INPUT_IDS = ["pilot", "copilot", "pax1", "pax2", "bag", "fuelLb", "taxiLb", "tripLb",
     "metar", "elev", "alt", "oat", "wdir", "wspd", "wgst", "rwy", "toda", "lda", "toGR", "toD", "ldGR", "ldD"];
   const PARAM_IDS = Object.keys(DEFAULT_PARAMS);
   const STORE = "p2010-prep-v2";
@@ -332,7 +332,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     const sel = $("acSel");
     sel.innerHTML = FLEET.length
       ? FLEET.map((a, i) => `<option value="${i}">${a.immat}</option>`).join("")
-      : `<option value="">Aucun avion enregistré</option>`;
+      : `<option value="">No aircraft registered</option>`;
   }
   function selectAircraft(idx) {
     AC = FLEET[idx] || null;
@@ -342,7 +342,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
       for (const k of PARAM_IDS) if (AC[k] !== undefined && AC[k] !== null) o[k] = AC[k];
       setAll(o);
     }
-    $("bewSrc").textContent = AC ? `${AC.immat}${AC.pesee ? " · pesée " + AC.pesee : ""}` : "aucun avion sélectionné";
+    $("bewSrc").textContent = AC ? `${AC.immat}${AC.pesee ? " · weighed " + AC.pesee : ""}` : "no aircraft selected";
     $("exNote").textContent = AC && AC.note ? AC.note : "";
   }
 
@@ -366,7 +366,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
         return JSON.parse(await res.text());
       } catch (e) { last = e; }
     }
-    throw last || new Error("réseau");
+    throw last || new Error("network");
   }
   let RUNWAYS = [];
   function runwayEnds(apt) {
@@ -383,10 +383,10 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
   }
   function fillRunways() {
     const wdir = num("wdir"), spd = num("wspd") || 0;
-    $("rwySel").innerHTML = `<option value="">— choisir —</option>` + RUNWAYS.map((r, i) => {
+    $("rwySel").innerHTML = `<option value="">— choose —</option>` + RUNWAYS.map((r, i) => {
       let w = "";
-      if (wdir !== null) { const hw = Math.cos((wdir - r.hdg) * Math.PI / 180) * spd; w = ` · ${hw >= 0 ? "face" : "arrière"} ${Math.abs(Math.round(hw))} kt`; }
-      return `<option value="${i}">${r.id} · ${r.hdg}° · ${r.len ? r.len + " ft" : "longueur ?"}${w}</option>`;
+      if (wdir !== null) { const hw = Math.cos((wdir - r.hdg) * Math.PI / 180) * spd; w = ` · ${hw >= 0 ? "head" : "tail"} ${Math.abs(Math.round(hw))} kt`; }
+      return `<option value="${i}">${r.id} · ${r.hdg}° · ${r.len ? r.len + " ft" : "length ?"}${w}</option>`;
     }).join("");
     // Preselect the runway with the most headwind.
     if (wdir !== null && RUNWAYS.length) {
@@ -404,8 +404,8 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
   async function fetchWx() {
     const icao = $("icao").value.trim().toUpperCase();
     $("icao").value = icao;
-    if (!/^[A-Z0-9]{3,4}$/.test(icao)) { status("Saisissez un code OACI de 4 lettres, par exemple KSFB ou LFPN.", true); return; }
-    status("Recherche de " + icao + "…");
+    if (!/^[A-Z0-9]{3,4}$/.test(icao)) { status("Enter a 4-letter ICAO code, for example KSFB or EGLL.", true); return; }
+    status("Looking up " + icao + "…");
     $("btnMetar").disabled = true;
     const base = "https://aviationweather.gov/api/data/";
     const [apt, met] = await Promise.allSettled([
@@ -419,16 +419,16 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
       // The airport service gives elevation in metres.
       if (a.elev !== undefined && a.elev !== null) $("elev").value = Math.round(a.elev * 3.28084);
       RUNWAYS = runwayEnds(a);
-      msgs.push(`${(a.name || icao).trim()} · ${$("elev").value} ft · ${RUNWAYS.length} QFU`);
-    } else { RUNWAYS = []; err = true; msgs.push("Aéroport introuvable : saisissez altitude, piste et longueur à la main"); }
+      msgs.push(`${(a.name || icao).trim()} · ${$("elev").value} ft · ${RUNWAYS.length} runway ends`);
+    } else { RUNWAYS = []; err = true; msgs.push("Airport not found: enter elevation, runway and length manually"); }
     if (met.status === "fulfilled" && met.value && met.value.length) {
       const m = met.value.slice().sort((x, y) => (y.obsTime || 0) - (x.obsTime || 0))[0];
       $("metar").value = m.rawOb || "";
       applyMetar();
       const age = m.obsTime ? Math.round((Date.now() / 1000 - m.obsTime) / 60) : null;
-      msgs.push(age !== null ? `METAR d'il y a ${age} min` : "METAR récupéré");
-      if (age !== null && age > 90) { err = true; msgs.push("METAR ancien, vérifiez"); }
-    } else { err = true; msgs.push("METAR indisponible : collez-le ci-dessous"); }
+      msgs.push(age !== null ? `METAR from ${age} min ago` : "METAR retrieved");
+      if (age !== null && age > 90) { err = true; msgs.push("old METAR, check it"); }
+    } else { err = true; msgs.push("METAR unavailable: paste it below"); }
     fillRunways();
     status(msgs.join(" · "), err);
     compute();
@@ -464,11 +464,11 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     if (m.wspd !== undefined) {
       if (m.wdir !== null && m.wdir !== undefined) $("wdir").value = m.wdir;
       $("wspd").value = m.wspd; $("wgst").value = m.wgst;
-      bits.push(`vent ${m.vrb ? "VRB" : m.wdir + "°"}/${m.wspd} kt${m.wgst ? " G" + m.wgst : ""}`);
+      bits.push(`wind ${m.vrb ? "VRB" : m.wdir + "°"}/${m.wspd} kt${m.wgst ? " G" + m.wgst : ""}`);
     }
     if (m.oat !== undefined) { $("oat").value = m.oat; bits.push(`T ${m.oat} °C`); }
     if (m.alt !== undefined) { $("alt").value = m.alt; bits.push(m.qnh ? `Q${m.qnh} = ${m.alt} inHg` : `A ${m.alt} inHg`); }
-    $("metarParsed").textContent = bits.length ? "Lu : " + bits.join(" · ") + (m.vrb ? " · vent variable : saisissez la direction la plus défavorable" : "") : "Rien de reconnu dans ce METAR.";
+    $("metarParsed").textContent = bits.length ? "Read: " + bits.join(" · ") + (m.vrb ? " · variable wind: enter the most unfavourable direction" : "") : "Nothing recognised in this METAR.";
   }
 
   // ---------- CALC ----------
@@ -488,12 +488,12 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     ];
     let W = bew, M = bewMom;
     for (const [id, w, arm] of items) { const m = w * (arm ?? 0); $("m_" + id).textContent = num(id) === null ? "" : fmt(m, 1); W += w; M += m; }
-    const fuelL = n0("fuelGal") * dens, taxiL = n0("taxiGal") * dens, tripL = n0("tripGal") * dens;
-    $("fuelLbs").textContent = fmt(fuelL, 0); $("taxiLbs").textContent = fmt(taxiL, 0); $("tripLbs").textContent = fmt(tripL, 0);
+    const fuelL = n0("fuelLb"), taxiL = n0("taxiLb"), tripL = n0("tripLb");
+    $("fuelGalOut").textContent = fmt(fuelL / dens, 1); $("taxiGalOut").textContent = fmt(taxiL / dens, 1); $("tripGalOut").textContent = fmt(tripL / dens, 1);
     const af = P.armFuel ?? 0;
-    $("m_fuel").textContent = num("fuelGal") === null ? "" : fmt(fuelL * af, 1);
-    $("m_taxi").textContent = num("taxiGal") === null ? "" : "−" + fmt(taxiL * af, 1);
-    $("m_trip").textContent = num("tripGal") === null ? "" : "−" + fmt(tripL * af, 1);
+    $("m_fuel").textContent = num("fuelLb") === null ? "" : fmt(fuelL * af, 1);
+    $("m_taxi").textContent = num("taxiLb") === null ? "" : "−" + fmt(taxiL * af, 1);
+    $("m_trip").textContent = num("tripLb") === null ? "" : "−" + fmt(tripL * af, 1);
     W += fuelL; M += fuelL * af;
     const toW = W - taxiL, toM = M - taxiL * af;
     const ldW = toW - tripL, ldM = toM - tripL * af;
@@ -512,9 +512,9 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     const toMacOk = inLim(r1(toMac)), ldMacOk = inLim(r1(ldMac));
 
     $("oTOW").textContent = hasMB ? fmt(toW, 0) : "—";
-    $("sTOW").textContent = hasMB && P.mtow ? (towBad ? `+${fmt(toW - P.mtow, 0)} lbs au-dessus de ${P.mtow}` : `marge ${fmt(P.mtow - toW, 0)} lbs`) : "lbs";
+    $("sTOW").textContent = hasMB && P.mtow ? (towBad ? `+${fmt(toW - P.mtow, 0)} lbs over ${P.mtow}` : `margin ${fmt(P.mtow - toW, 0)} lbs`) : "lbs";
     $("oLW").textContent = hasMB ? fmt(ldW, 0) : "—";
-    $("sLW").textContent = hasMB && P.mlw ? (lwBad ? `+${fmt(ldW - P.mlw, 0)} lbs au-dessus de ${P.mlw}` : `marge ${fmt(P.mlw - ldW, 0)} lbs`) : "lbs";
+    $("sLW").textContent = hasMB && P.mlw ? (lwBad ? `+${fmt(ldW - P.mlw, 0)} lbs over ${P.mlw}` : `margin ${fmt(P.mlw - ldW, 0)} lbs`) : "lbs";
     $("oTOMAC").textContent = hasMB ? fmt(toMac, 1) : "—";
     $("oLMAC").textContent = hasMB ? fmt(ldMac, 1) : "—";
     setState("cTOW", hasMB, !towBad); setState("cLW", hasMB, !lwBad);
@@ -539,13 +539,13 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
       const ang = ((wdir - rwy) % 360 + 540) % 360 - 180; // -180..180
       const rad = ang * Math.PI / 180;
       hw = Math.cos(rad) * spd; xw = Math.sin(rad) * spd;
-      side = Math.abs(xw) < 0.05 ? "" : (xw > 0 ? "de droite" : "de gauche");
+      side = Math.abs(xw) < 0.05 ? "" : (xw > 0 ? "from the right" : "from the left");
       $("sXW").textContent = `kt ${side} · angle ${Math.abs(Math.round(ang))}°`;
     } else { $("sXW").textContent = "kt"; }
     const tail = hw !== null && hw < -0.05;
-    $("kHW").textContent = tail ? "Vent arrière" : "Vent de face";
+    $("kHW").textContent = tail ? "Tailwind" : "Headwind";
     $("oHW").textContent = hw === null ? "—" : fmt(Math.abs(hw), 1);
-    $("sHW").textContent = hw === null ? "kt" : `kt · vent ${P.gustMode === "gust" ? "rafales" : "moyen"} ${fmt(spd, 0)} kt`;
+    $("sHW").textContent = hw === null ? "kt" : `kt · ${P.gustMode === "gust" ? "gust" : "steady"} ${fmt(spd, 0)} kt`;
     $("oXW").textContent = xw === null ? "—" : fmt(Math.abs(xw), 1);
     const xwBad = xw !== null && P.xwMax && Math.abs(xw) > P.xwMax;
     setState("cHW", hw !== null, !tail, true);
@@ -577,33 +577,33 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     const todrBad = todr !== null && toda !== null && Math.round(todr) > toda;
     const ldrBad = ldr !== null && lda !== null && Math.round(ldr) > lda;
     $("rowTODR").classList.toggle("bad", todrBad); $("rowLDR").classList.toggle("bad", ldrBad);
-    $("distFormula").textContent = `Corrigée = abaque ${tail ? "+ vent arrière" : "− vent de face"} (${hwKt} kt × ${tail ? (P.toTw ?? "?") + " / " + (P.ldTw ?? "?") : (P.toHw ?? "?") + " / " + (P.ldHw ?? "?")} ft/kt) · TODR = × ${P.sfTO ?? "?"} · LDR = × ${P.sfLD ?? "?"}`;
+    $("distFormula").textContent = `Corrected = chart ${tail ? "+ tailwind" : "− headwind"} (${hwKt} kt × ${tail ? (P.toTw ?? "?") + " / " + (P.ldTw ?? "?") : (P.toHw ?? "?") + " / " + (P.ldHw ?? "?")} ft/kt) · TODR = × ${P.sfTO ?? "?"} · LDR = × ${P.sfLD ?? "?"}`;
 
     // Checks
     const C = [];
     if (hasMB) {
-      C.push(towBad ? ["nogo", `Masse au décollage ${fmt(toW, 0)} lbs > ${P.mtow} lbs (dépassement ${fmt(toW - P.mtow, 0)} lbs)`] : ["go", `Masse au décollage ${fmt(toW, 0)} lbs ≤ ${P.mtow} lbs`]);
-      C.push(lwBad ? ["nogo", `Masse à l'atterrissage ${fmt(ldW, 0)} lbs > ${P.mlw} lbs`] : ["go", `Masse à l'atterrissage ${fmt(ldW, 0)} lbs ≤ ${P.mlw} lbs`]);
-      C.push(toMacOk ? ["go", `Centrage décollage ${fmt(toMac, 1)} % dans ${P.macMin}–${P.macMax} %`] : ["nogo", `Centrage décollage ${fmt(toMac, 1)} % hors limites ${P.macMin}–${P.macMax} %`]);
-      C.push(ldMacOk ? ["go", `Centrage atterrissage ${fmt(ldMac, 1)} % dans ${P.macMin}–${P.macMax} %`] : ["nogo", `Centrage atterrissage ${fmt(ldMac, 1)} % hors limites ${P.macMin}–${P.macMax} %`]);
+      C.push(towBad ? ["nogo", `Takeoff weight ${fmt(toW, 0)} lbs > ${P.mtow} lbs (over by ${fmt(toW - P.mtow, 0)} lbs)`] : ["go", `Takeoff weight ${fmt(toW, 0)} lbs ≤ ${P.mtow} lbs`]);
+      C.push(lwBad ? ["nogo", `Landing weight ${fmt(ldW, 0)} lbs > ${P.mlw} lbs`] : ["go", `Landing weight ${fmt(ldW, 0)} lbs ≤ ${P.mlw} lbs`]);
+      C.push(toMacOk ? ["go", `Takeoff CG ${fmt(toMac, 1)} % within ${P.macMin}–${P.macMax} %`] : ["nogo", `Takeoff CG ${fmt(toMac, 1)} % outside limits ${P.macMin}–${P.macMax} %`]);
+      C.push(ldMacOk ? ["go", `Landing CG ${fmt(ldMac, 1)} % within ${P.macMin}–${P.macMax} %`] : ["nogo", `Landing CG ${fmt(ldMac, 1)} % outside limits ${P.macMin}–${P.macMax} %`]);
     }
-    if (tail && (cTO.v === null || cLD.v === null)) C.push(["warn", "Vent arrière : renseignez la correction vent arrière du manuel de vol dans les paramètres"]);
+    if (tail && (cTO.v === null || cLD.v === null)) C.push(["warn", "Tailwind: enter the POH tailwind correction in the parameters"]);
     if (todr !== null && toda !== null) C.push(todrBad ? ["nogo", `TODR ${fmtInt(todr)} ft > TODA ${toda} ft`] : ["go", `TODR ${fmtInt(todr)} ft ≤ TODA ${toda} ft`]);
     if (ldr !== null && lda !== null) C.push(ldrBad ? ["nogo", `LDR ${fmtInt(ldr)} ft > LDA ${lda} ft`] : ["go", `LDR ${fmtInt(ldr)} ft ≤ LDA ${lda} ft`]);
     if (xw !== null) {
-      if (P.xwMax) C.push(xwBad ? ["nogo", `Vent traversier ${fmt(Math.abs(xw), 0)} kt > ${P.xwMax} kt`] : ["go", `Vent traversier ${fmt(Math.abs(xw), 0)} kt ≤ ${P.xwMax} kt`]);
-      else C.push(["warn", `Vent traversier ${fmt(Math.abs(xw), 0)} kt : limite démontrée non renseignée`]);
+      if (P.xwMax) C.push(xwBad ? ["nogo", `Crosswind ${fmt(Math.abs(xw), 0)} kt > ${P.xwMax} kt`] : ["go", `Crosswind ${fmt(Math.abs(xw), 0)} kt ≤ ${P.xwMax} kt`]);
+      else C.push(["warn", `Crosswind ${fmt(Math.abs(xw), 0)} kt: max demonstrated crosswind not set`]);
     }
-    if (tail) C.push(["warn", `Vent arrière ${fmt(Math.abs(hw), 0)} kt : envisagez la piste opposée`]);
-    $("checks").innerHTML = C.length ? C.map(([s, t]) => `<li><span class="pill ${s}">${s === "go" ? "OK" : s === "nogo" ? "NO GO" : "À VOIR"}</span><span>${t}</span></li>`).join("") : `<li><span class="pill warn">—</span><span>Saisissez les données pour lancer les vérifications.</span></li>`;
+    if (tail) C.push(["warn", `Tailwind ${fmt(Math.abs(hw), 0)} kt: consider the opposite runway`]);
+    $("checks").innerHTML = C.length ? C.map(([s, t]) => `<li><span class="pill ${s}">${s === "go" ? "OK" : s === "nogo" ? "NO GO" : "CHECK"}</span><span>${t}</span></li>`).join("") : `<li><span class="pill warn">—</span><span>Enter data to run the checks.</span></li>`;
 
     // Verdict chips
     const mbState = !hasMB ? "warn" : (towBad || lwBad || !toMacOk || !ldMacOk) ? "nogo" : "go";
     const pfHas = todr !== null || ldr !== null;
     const pfState = !pfHas ? "warn" : (todrBad || ldrBad || xwBad) ? "nogo" : (C.some(c => c[0] === "warn") ? "warn" : "go");
-    const chip = (k, s) => `<div class="vchip ${s}"><div class="k">${k}</div><div class="v">${s === "go" ? "GO" : s === "nogo" ? "NO GO" : "À COMPLÉTER"}</div></div>`;
-    const pfLabel = pfHas && pfState === "warn" ? "À VÉRIFIER" : null;
-    $("verdict").innerHTML = chip("Masse &amp; centrage", mbState) + (pfLabel ? `<div class="vchip warn"><div class="k">Performances</div><div class="v">${pfLabel}</div></div>` : chip("Performances", pfState));
+    const chip = (k, s) => `<div class="vchip ${s}"><div class="k">${k}</div><div class="v">${s === "go" ? "GO" : s === "nogo" ? "NO GO" : "INCOMPLETE"}</div></div>`;
+    const pfLabel = pfHas && pfState === "warn" ? "CHECK" : null;
+    $("verdict").innerHTML = chip("Weight &amp; balance", mbState) + (pfLabel ? `<div class="vchip warn"><div class="k">Performance</div><div class="v">${pfLabel}</div></div>` : chip("Performance", pfState));
     save();
   }
 
@@ -637,8 +637,8 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
       s += mark(ldMac, "LDG", true).replace(/text-anchor="middle"/, `text-anchor="${a ? "end" : "start"}"`);
       s += mark(toMac, "T/O", true).replace(/text-anchor="middle"/, `text-anchor="${a ? "start" : "end"}"`);
     } else { s += mark(ldMac, "LDG", true) + mark(toMac, "T/O", true); }
-    s += `<text x="${L}" y="72" font-size="10" font-family="IBM Plex Sans, sans-serif" fill="var(--muted)">avant</text>`;
-    s += `<text x="${R}" y="72" text-anchor="end" font-size="10" font-family="IBM Plex Sans, sans-serif" fill="var(--muted)">arrière</text>`;
+    s += `<text x="${L}" y="72" font-size="10" font-family="IBM Plex Sans, sans-serif" fill="var(--muted)">fwd</text>`;
+    s += `<text x="${R}" y="72" text-anchor="end" font-size="10" font-family="IBM Plex Sans, sans-serif" fill="var(--muted)">aft</text>`;
     svg.setAttribute("viewBox", "0 0 520 76");
     svg.innerHTML = s;
   }

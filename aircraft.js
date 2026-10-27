@@ -1,13 +1,13 @@
-// Flotte P2010 : une entrée par avion.
-// bew / bewMoment : masse à vide de base (lbs) et moment (lbs·m) de la fiche de pesée.
-// Les autres champs sont facultatifs et remplacent, pour cet avion, les paramètres
-// par défaut de la page : armFront, armRear, armBag, armFuel, fuelDens, mtow, mlw,
-// macDiv, macMin, macMax, toHw, toTw, ldHw, ldTw, sfTO, sfLD, xwMax.
+// P2010 fleet: one entry per aircraft.
+// bew / bewMoment: basic empty weight (lbs) and moment (lbs·m) from the weighing report.
+// The other fields are optional and override the page defaults for that aircraft:
+// armFront, armRear, armBag, armFuel, fuelDens, mtow, mlw, macDiv, macMin, macMax,
+// toHw, toTw, ldHw, ldTw, sfTO, sfLD, xwMax.
 window.P2010_FLEET = [
   {
-    immat: "EXEMPLE (quiz 5 oct.)",
+    immat: "EXAMPLE (Oct 5 quiz)",
     bew: 1689,
     bewMoment: 1820,
-    note: "Avion d'exemple tiré du quiz. Les 15 avions de la flotte seront ajoutés ici."
+    note: "Example aircraft from the quiz. The 15 fleet aircraft will be added here."
   }
 ];
