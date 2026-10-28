@@ -82,6 +82,9 @@ select { text-align: left; }
 button { font: 600 15px var(--f-body); letter-spacing: -.01em; min-height: 44px; border: 0; background: var(--accent-soft); color: var(--accent); border-radius: 12px; padding: 8px 16px; cursor: pointer; }
 button:hover { filter: brightness(.97); }
 #btnMetar { background: var(--accent); color: #fff; }
+a.btn { font: 600 15px var(--f-body); letter-spacing: -.01em; min-height: 44px; display: inline-flex; align-items: center; gap: 6px; background: var(--accent-soft); color: var(--accent); border-radius: 12px; padding: 8px 16px; text-decoration: none; }
+a.btn::before { content: ""; width: 16px; height: 16px; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 6h3l4-3v10L5 10H2z M11 5.5a3.5 3.5 0 0 1 0 5 M12.8 3.5a6 6 0 0 1 0 9' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 6h3l4-3v10L5 10H2z M11 5.5a3.5 3.5 0 0 1 0 5 M12.8 3.5a6 6 0 0 1 0 9' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat; }
+a.btn:focus-visible { outline: 3px solid var(--accent-soft); box-shadow: 0 0 0 1px var(--accent); }
 button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 0; box-shadow: 0 0 0 1px var(--accent); }
 
 main.grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; padding-bottom: 40px; margin-top: 12px; }
@@ -274,6 +277,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
         <div class="icao-row">
           <div class="field"><label for="icao">Departure airport (ICAO code)</label><input id="icao" type="text" maxlength="4" autocomplete="off" spellcheck="false" placeholder="KFPR"></div>
           <button type="button" id="btnMetar">Get METAR</button>
+          <a class="btn" id="atisLink" href="https://www.liveatc.net/search/?icao=KFPR" target="_blank" rel="noopener">Listen to ATIS</a>
           <div class="field"><label for="rwySel">Runway</label><select id="rwySel"><option value="">— search first —</option></select></div>
         </div>
         <div class="status" id="wxStatus"></div>
@@ -470,12 +474,20 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     }
     throw last || new Error("network");
   }
-  // US stations: the National Weather Service API allows browser calls, so it gives a live METAR
-  // when the GitHub Action copy is late (scheduled Actions can lag by hours).
-  async function nwsMetar(icao) {
-    const d = await getJSON("https://api.weather.gov/stations/" + icao + "/observations?limit=4", true);
-    return (d.features || []).map((f) => f.properties || {}).filter((p) => p.rawMessage)
-      .map((p) => ({ rawOb: p.rawMessage.trim(), obsTime: Math.round(Date.parse(p.timestamp) / 1000) }));
+  // Live METAR from VATSIM's real-world METAR service, which allows browser calls (worldwide, refreshed
+  // within minutes). The GitHub Action copy is only a fallback: scheduled Actions can lag by hours.
+  async function liveMetar(icao) {
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 8000);
+    const res = await fetch("https://metar.vatsim.net/metar.php?id=" + icao, { signal: ctl.signal, cache: "no-store" });
+    clearTimeout(t);
+    const raw = (await res.text()).trim().split("\n")[0].trim();
+    const m = raw.match(/^[A-Z0-9]{4} (\d{2})(\d{2})(\d{2})Z/);
+    if (!res.ok || !m) throw new Error("no METAR");
+    // DDHHMMZ: take the most recent such time not in the future (handles month changes).
+    const now = new Date();
+    let d = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), +m[1], +m[2], +m[3]);
+    if (d > now.getTime() + 3600e3) d = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, +m[1], +m[2], +m[3]);
+    return [{ rawOb: raw, obsTime: Math.round(d / 1000) }];
   }
   const newest = (list) => list.filter(Boolean).flat().filter((m) => m && m.rawOb).sort((x, y) => (y.obsTime || 0) - (x.obsTime || 0));
   let RUNWAYS = [];
@@ -518,6 +530,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     if (!/^[A-Z0-9]{3,4}$/.test(icao)) { status("Enter a 4-letter ICAO code, for example KFPR.", true); return; }
     status("Looking up " + icao + "…");
     $("btnMetar").disabled = true;
+    $("atisLink").href = "https://www.liveatc.net/search/?icao=" + encodeURIComponent(icao);
     const base = "https://aviationweather.gov/api/data/";
     // Home field: weather published every 10 min by the repo's GitHub Action (same data, no relay needed).
     const home = HOME_DATA + icao;
@@ -530,8 +543,8 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
       getJSON(base + "metar?ids=" + icao + "&format=json&hours=3"),
       getJSON(base + "taf?ids=" + icao + "&format=json")
     ]);
-    // Take the newest METAR among the published copy and the live NWS feed.
-    const live = /^K[A-Z0-9]{3}$/.test(icao) ? await nwsMetar(icao).catch(() => null) : null;
+    // Take the newest METAR among the published copy and the live feed.
+    const live = await liveMetar(icao).catch(() => null);
     const metList = newest([met.status === "fulfilled" ? met.value : null, live]);
     TAF = { icao, data: taf.status === "fulfilled" && taf.value && taf.value.length ? taf.value[0] : null };
     $("btnMetar").disabled = false;
