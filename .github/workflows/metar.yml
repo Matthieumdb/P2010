@@ -37,6 +37,8 @@ jobs:
           get "https://aviationweather.gov/api/data/metar?ids=KFPR&format=json&hours=3" KFPR-metar.json
           get "https://aviationweather.gov/api/data/airport?ids=KFPR&format=json" KFPR-airport.json
           get "https://aviationweather.gov/api/data/taf?ids=KFPR&format=json" KFPR-taf.json
+          # Diagnostic: what the live NWS feed (read by the page as a fallback) returns.
+          curl -sS -m 30 -D out/nws-headers.txt -H "Origin: https://matthieumdb.github.io" -A "$UA" "https://api.weather.gov/stations/KFPR/observations?limit=3" -o out/nws.json || true
           date -u +%Y-%m-%dT%H:%M:%SZ > out/updated.txt
           head -c 300 out/KFPR-metar.json; echo
       - name: Publish to the metar-data branch
