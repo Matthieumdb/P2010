@@ -180,6 +180,15 @@ input.wide { text-align: left; font: 400 15px var(--f-mono); }
 .cell.ok .v { color: var(--go); }
 
 .gauge { display: grid; gap: 8px; }
+/* Fuel plan: stacked bar of the fuel on board. */
+.fbar { display: flex; height: 26px; border-radius: 8px; overflow: hidden; background: var(--field); }
+.fbar span { display: block; height: 100%; min-width: 0; border-right: 2px solid var(--panel); }
+.fbar span:last-child { border-right: 0; }
+.fbar .taxi { background: var(--muted); opacity: .55; } .fbar .trip { background: var(--accent); } .fbar .res { background: #ff9500; } .fbar .extra { background: #34c759; }
+.fbar .short { background: repeating-linear-gradient(45deg, var(--nogo) 0 6px, var(--nogo-soft) 6px 12px); }
+.flegend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted); margin-top: 8px; }
+.flegend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -.05em; }
+input.auto { color: var(--accent); }
 .gauge svg { width: 100%; max-width: 640px; height: auto; display: block; }
 
 .checks { display: grid; margin: 0; padding: 0; list-style: none; background: var(--field); border-radius: 14px; overflow: hidden; }
@@ -267,7 +276,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
               <tr><td class="lbl">Fuel<span>lbs · <b id="fuelGalOut">0</b> US gal</span></td><td><input class="w" id="fuelLb" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armFuel"></td><td class="num" id="m_fuel"></td></tr>
               <tr class="deduct"><td class="lbl">− Taxi fuel<span>lbs · <b id="taxiGalOut">0</b> US gal</span></td><td><input class="w" id="taxiLb" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armFuel"></td><td class="num" id="m_taxi"></td></tr>
               <tr class="sub" id="rowTO"><td class="lbl">Takeoff</td><td class="num" id="toW"></td><td class="num" id="toArm"></td><td class="num" id="toMom"></td></tr>
-              <tr class="deduct"><td class="lbl">− Fuel burned in flight<span>lbs · <b id="tripGalOut">0</b> US gal</span></td><td><input class="w" id="tripLb" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armFuel"></td><td class="num" id="m_trip"></td></tr>
+              <tr class="deduct"><td class="lbl">− Fuel burned in flight<span>lbs · <b id="tripGalOut">0</b> US gal<span id="tripSrc" style="display:inline"></span></span></td><td><input class="w" id="tripLb" type="number" step="any" inputmode="decimal"></td><td class="num" data-arm="armFuel"></td><td class="num" id="m_trip"></td></tr>
               <tr class="sub" id="rowLDG"><td class="lbl">Landing</td><td class="num" id="ldW"></td><td class="num" id="ldArm"></td><td class="num" id="ldMom"></td></tr>
             </tbody>
           </table>
@@ -284,6 +293,29 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
           <h3>CG envelope</h3>
           <svg id="cgSvg" viewBox="0 0 520 300" role="img" aria-label="Weight against CG for takeoff, landing and zero fuel, inside the AFM envelope"></svg>
           <p class="formula">% MAC = arm / <span data-val="macDiv"></span> × 100 · limits <span data-val="macMin"></span>–<span data-val="macMax"></span> % for all weights (AFM Section 2) · the line from takeoff to landing is the fuel burned, the dashed line runs on to zero fuel</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- FUEL PLAN -->
+    <section class="panel" aria-labelledby="fp-h" data-pane="wb">
+      <h2 id="fp-h">Fuel plan <small>lbs, US gal</small></h2>
+      <div class="body">
+        <div class="fields">
+          <div class="field"><label for="ftime">Flight time (h:mm)</label><input id="ftime" type="text" inputmode="numeric" autocomplete="off" placeholder="1:30"></div>
+          <div class="field"><label for="ffGph">Fuel flow</label><div class="row"><input id="ffGph" type="number" step="0.1" inputmode="decimal" value="10"><span class="unit">gal/h</span></div></div>
+          <div class="field"><label for="resMin">Reserve</label><div class="row"><input id="resMin" type="number" step="1" inputmode="numeric" value="30"><span class="unit">min</span></div></div>
+        </div>
+        <p class="hint">The flight time fills “Fuel burned in flight” in the weight and balance. Reserve: 30 min day VFR, 45 min night VFR (14 CFR 91.151), or your school's rule. AFM cruise table at 4000 ft, 2400 RPM: 12.3 gal/h full rich, about 9.8 gal/h best economy.</p>
+        <div class="out">
+          <div class="cell" id="cTrip"><div class="k">Trip fuel</div><div class="v" id="oTrip">—</div><div class="s" id="sTrip">lbs</div></div>
+          <div class="cell" id="cReq"><div class="k">Minimum at ramp</div><div class="v" id="oReq">—</div><div class="s" id="sReq">taxi + trip + reserve</div></div>
+          <div class="cell" id="cLand"><div class="k">Fuel at landing</div><div class="v" id="oLand">—</div><div class="s" id="sLand">lbs</div></div>
+          <div class="cell" id="cEnd"><div class="k">Endurance</div><div class="v" id="oEnd">—</div><div class="s" id="sEnd">h:mm</div></div>
+        </div>
+        <div>
+          <div class="fbar" id="fbar" role="img" aria-label="Fuel on board split into taxi, trip, reserve and extra"></div>
+          <div class="flegend"><span><i style="background:var(--muted);opacity:.55"></i>Taxi</span><span><i style="background:var(--accent)"></i>Trip</span><span><i style="background:#ff9500"></i>Reserve</span><span><i style="background:#34c759"></i>Extra</span><span id="fNote"></span></div>
         </div>
       </div>
     </section>
@@ -443,8 +475,8 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
   <footer>Flight preparation aid only. The aircraft POH/AFM is the reference, and the pilot in command remains responsible for the decision.</footer>
 </div>
 
-<script src="aircraft.js?v=202611120420"></script>
-<script src="performance.js?v=202611120420"></script>
+<script src="aircraft.js?v=202611120440"></script>
+<script src="performance.js?v=202611120440"></script>
 <script>
 (function () {
   const DEFAULT_PARAMS = {
@@ -453,7 +485,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     toHw: 33, toTw: 66, ldHw: 13, ldTw: 43, sfTO: 1.33, sfLD: 1.43, xwMax: 17, bagMax: 88, fuelMax: 366,
     isaMode: "sl", gustMode: "steady"
   };
-  const INPUT_IDS = ["pilot", "copilot", "pax1", "pax2", "bag", "fuelLb", "taxiLb", "tripLb",
+  const INPUT_IDS = ["pilot", "copilot", "pax1", "pax2", "bag", "fuelLb", "taxiLb", "tripLb", "ftime",
     "metar", "elev", "alt", "oat", "wdir", "wspd", "wgst", "rwy", "toda", "lda", "slope"];
   const PARAM_IDS = Object.keys(DEFAULT_PARAMS);
   const STORE = "p2010-prep-v2";
@@ -469,7 +501,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
   function setAll(obj) { for (const [k, v] of Object.entries(obj)) if ($(k)) $(k).value = v; }
   // Only the chosen aircraft and airport are remembered; weights and distances start empty each visit.
   function save() {
-    try { localStorage.setItem(STORE, JSON.stringify({ immat: AC ? AC.immat : "", icao: $("icao").value })); } catch (e) {}
+    try { localStorage.setItem(STORE, JSON.stringify({ immat: AC ? AC.immat : "", icao: $("icao").value, ffGph: $("ffGph").value, resMin: $("resMin").value })); } catch (e) {}
   }
   function load() {
     try { const s = localStorage.getItem(STORE); return s ? JSON.parse(s) : {}; } catch (e) { return {}; }
@@ -842,6 +874,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     ];
     let W = bew, M = bewMom;
     for (const [id, w, arm] of items) { const m = w * (arm ?? 0); $("m_" + id).textContent = num(id) === null ? "" : fmt(m, 1); W += w; M += m; }
+    const plan = syncTrip(dens);
     const fuelL = n0("fuelLb"), taxiL = n0("taxiLb"), tripL = n0("tripLb");
     $("fuelGalOut").textContent = fmt(fuelL / dens, 1); $("taxiGalOut").textContent = fmt(taxiL / dens, 1); $("tripGalOut").textContent = fmt(tripL / dens, 1);
     const af = P.armFuel ?? 0;
@@ -877,6 +910,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     $("rowLDG").classList.toggle("bad", !!(hasMB && (lwBad || !ldMacOk)));
     const zfW = W - fuelL, zfM = M - fuelL * af;
     drawEnvelope(P, hasMB ? { to: [toW, toMac], ld: [ldW, ldMac], zf: [zfW, mac(zfM / zfW)] } : null);
+    const FP = fuelPlan(dens, plan, fuelL, taxiL, tripL);
 
     // Performance
     const elev = num("elev"), alt = num("alt"), oat = num("oat");
@@ -1004,6 +1038,8 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
       C.push(toMacOk ? ["go", `Takeoff CG ${fmt(toMac, 1)} % within ${P.macMin}–${P.macMax} %`] : ["nogo", `Takeoff CG ${fmt(toMac, 1)} % outside limits ${P.macMin}–${P.macMax} %`]);
       if (P.bagMax && n0("bag") > P.bagMax) C.push(["nogo", `Baggage ${fmt(n0("bag"), 0)} lbs > ${P.bagMax} lbs`]);
       if (P.fuelMax && n0("fuelLb") > P.fuelMax) C.push(["nogo", `Fuel ${fmt(n0("fuelLb"), 0)} lbs > ${P.fuelMax} lbs usable`]);
+      if (FP.short) C.push(["nogo", `Fuel at landing ${fmt(FP.land, 0)} lbs (${hm(FP.landH)}) below the ${FP.resMin} min reserve (${fmt(FP.res, 0)} lbs)`]);
+      else if (FP.ok) C.push(["go", `Fuel at landing ${fmt(FP.land, 0)} lbs (${hm(FP.landH)}) covers the ${FP.resMin} min reserve`]);
       C.push(ldMacOk ? ["go", `Landing CG ${fmt(ldMac, 1)} % within ${P.macMin}–${P.macMax} %`] : ["nogo", `Landing CG ${fmt(ldMac, 1)} % outside limits ${P.macMin}–${P.macMax} %`]);
     }
     if (hw === null) C.push(["warn", `Wind correction not applied: ${wdir === null ? "wind direction" : rwy === null ? "runway heading" : "wind speed"} missing (fetch the METAR and pick a runway, or fill them in)`]);
@@ -1020,7 +1056,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     $("checks").innerHTML = C.length ? C.map(([s, t]) => `<li><span class="pill ${s}">${s === "go" ? "OK" : s === "nogo" ? "No go" : "Check"}</span><span>${t}</span></li>`).join("") : `<li><span class="pill warn">—</span><span>Enter data to run the checks.</span></li>`;
 
     // Verdict chips
-    const mbState = !hasMB ? "warn" : (towBad || lwBad || !toMacOk || !ldMacOk || (P.bagMax && n0("bag") > P.bagMax) || (P.fuelMax && n0("fuelLb") > P.fuelMax)) ? "nogo" : "go";
+    const mbState = !hasMB ? "warn" : (towBad || lwBad || !toMacOk || !ldMacOk || (P.bagMax && n0("bag") > P.bagMax) || (P.fuelMax && n0("fuelLb") > P.fuelMax) || FP.short) ? "nogo" : "go";
     const pfHas = todr !== null || ldr !== null;
     const pfState = !pfHas ? "warn" : (todrBad || ldrBad || xwBad) ? "nogo" : (C.some(c => c[0] === "warn") ? "warn" : "go");
     const word = { go: "Go", nogo: "No go", warn: "Incomplete", off: "No data" };
@@ -1038,6 +1074,56 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
   }
 
   const LAMPS = {};
+  // Flight time as h:mm, or decimal hours.
+  function parseTime(str) {
+    const t = String(str || "").trim().replace(",", ".");
+    if (!t) return null;
+    let m = t.match(/^(\d{1,2})[:h ](\d{1,2})$/);
+    if (m) return +m[1] + +m[2] / 60;
+    m = t.match(/^(\d+(?:\.\d+)?)$/);
+    return m ? +m[1] : null;
+  }
+  const hm = (h) => (h === null || !isFinite(h)) ? "—" : `${h < 0 ? "−" : ""}${Math.floor(Math.abs(h) + 1e-9)}:${String(Math.round((Math.abs(h) % 1) * 60) % 60).padStart(2, "0")}`;
+  // The flight time drives the trip fuel in the weight and balance; typing a trip fuel by hand still works without it.
+  let tripAuto = false;
+  function syncTrip(dens) {
+    const h = parseTime($("ftime").value), ff = num("ffGph");
+    const el = $("tripLb");
+    if (h !== null && ff) {
+      el.value = Math.round(h * ff * dens); el.readOnly = true; el.classList.add("auto"); tripAuto = true;
+      $("tripSrc").textContent = ` · ${hm(h)} at ${fmt(ff, 1)} gal/h`;
+    } else {
+      if (tripAuto) { el.value = ""; el.readOnly = false; el.classList.remove("auto"); tripAuto = false; }
+      $("tripSrc").textContent = "";
+    }
+    return { h, ff };
+  }
+  function fuelPlan(dens, plan, fuel, taxi, trip) {
+    const ff = plan.ff, lbh = ff ? ff * dens : null, resMin = num("resMin") ?? 0;
+    const res = lbh ? resMin / 60 * lbh : null;
+    const has = fuel > 0 && !!lbh;
+    const land = fuel - taxi - trip, req = taxi + trip + (res ?? 0);
+    const planned = has && (plan.h !== null || trip > 0);
+    const out = { resMin, res, land, landH: lbh ? land / lbh : null, short: planned && land < res - 0.5, ok: planned && land >= res - 0.5 };
+    const g = (lbs) => `${fmt(lbs / dens, 1)} gal`;
+    $("oTrip").textContent = trip > 0 ? fmt(trip, 0) : "—";
+    $("sTrip").textContent = trip > 0 ? `lbs · ${g(trip)}${plan.h !== null ? " · " + hm(plan.h) : ""}` : "lbs";
+    $("oReq").textContent = lbh ? fmt(req, 0) : "—";
+    $("sReq").textContent = lbh ? `lbs · ${g(req)} · reserve ${fmt(res, 0)} lbs` : "taxi + trip + reserve";
+    $("oLand").textContent = planned ? fmt(land, 0) : "—";
+    $("sLand").textContent = planned ? `lbs · ${g(land)} · ${hm(out.landH)} of flight` : "lbs";
+    $("oEnd").textContent = has ? hm((fuel - taxi) / lbh) : "—";
+    $("sEnd").textContent = has ? `h:mm after taxi at ${fmt(ff, 1)} gal/h` : "h:mm";
+    setState("cLand", planned, !out.short); setState("cReq", planned, !out.short);
+    // Bar: everything on the same scale as the larger of fuel on board and the minimum needed.
+    const scale = Math.max(fuel, req) || 1, pc = (v) => Math.max(0, v) / scale * 100;
+    const extra = fuel - req;
+    $("fbar").innerHTML = !has ? "" :
+      [["taxi", taxi], ["trip", trip], ["res", extra < 0 ? Math.max(0, fuel - taxi - trip) : res], [extra < 0 ? "short" : "extra", Math.abs(extra)]]
+        .filter(([, v]) => v > 0.5).map(([c, v]) => `<span class="${c}" style="width:${pc(v)}%" title="${c} ${fmt(v, 0)} lbs"></span>`).join("");
+    $("fNote").innerHTML = !has ? "Enter the fuel on board and the fuel flow." : extra < -0.5 ? `<b class="bad-t">${fmt(-extra, 0)} lbs (${g(-extra)}) short</b>` : `Extra ${fmt(extra, 0)} lbs · ${g(extra)} · ${hm(extra / lbh)}`;
+    return out;
+  }
   // Wind components for a runway heading: hw > 0 headwind, xw > 0 from the right.
   function comps(dir, hdg, spd) {
     const ang = ((dir - hdg) % 360 + 540) % 360 - 180, r = ang * Math.PI / 180;
@@ -1173,6 +1259,8 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
   if (FLEET.length) $("acSel").value = String(startIdx);
   selectAircraft(FLEET.length ? startIdx : -1);
   $("icao").value = saved.icao || HOME;
+  if (saved.ffGph) $("ffGph").value = saved.ffGph;
+  if (saved.resMin) $("resMin").value = saved.resMin;
 
   document.addEventListener("input", (e) => {
     if (e.target.id === "metar") applyMetar();
