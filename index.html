@@ -93,6 +93,13 @@ main.grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; pad
 .tabs button { border: 0; border-radius: 8px; background: none; color: var(--ink); min-height: 34px; padding: 6px 8px; font: 500 14px var(--f-body); white-space: nowrap; }
 .tabs button[aria-selected="true"] { background: var(--seg-on); font-weight: 600; box-shadow: 0 3px 8px rgba(0,0,0,.12), 0 3px 1px rgba(0,0,0,.04); }
 .tabs button:hover { filter: none; }
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; padding: 2px; background: var(--seg); border-radius: 10px; max-width: 520px; margin: 0; border: 0; }
+.seg legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.seg label { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; min-height: 40px; padding: 4px 6px; font: 500 14px var(--f-body); color: var(--ink); text-align: center; cursor: pointer; line-height: 1.15; }
+.seg label small { font-size: 11px; color: var(--muted); font-weight: 400; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label:has(input:checked) { background: var(--seg-on); font-weight: 600; box-shadow: 0 3px 8px rgba(0,0,0,.12), 0 3px 1px rgba(0,0,0,.04); }
+.seg label:has(input:focus-visible) { outline: 3px solid var(--accent-soft); box-shadow: 0 0 0 1px var(--accent); }
 .cat { font: 600 11px var(--f-body); letter-spacing: .02em; padding: 3px 8px; border-radius: 999px; color: #fff; display: inline-block; }
 .cat.VFR { background: var(--vfr); } .cat.MVFR { background: var(--mvfr); } .cat.IFR { background: var(--ifr); } .cat.LIFR { background: var(--lifr); }
 .taf-head { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: baseline; font-size: 14px; color: var(--muted); }
@@ -313,6 +320,16 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
 
         <div>
           <h3 style="margin-bottom:8px">Distances</h3>
+          <div class="field" style="margin-bottom:10px">
+            <label id="perfTblLbl">AFM takeoff table</label>
+            <fieldset class="seg" id="perfTbl" aria-labelledby="perfTblLbl">
+              <legend>AFM takeoff table</legend>
+              <label><input type="radio" name="perfTbl" value="auto" checked>Auto<small>by weight</small></label>
+              <label><input type="radio" name="perfTbl" value="2557">2557<small>lbs · max</small></label>
+              <label><input type="radio" name="perfTbl" value="2337">2337<small>lbs</small></label>
+              <label><input type="radio" name="perfTbl" value="2116">2116<small>lbs · light</small></label>
+            </fieldset>
+          </div>
           <p class="hint" style="margin-bottom:8px" id="chartNote">Chart values are interpolated from the AFM Section 5 tables for the takeoff weight, pressure altitude and temperature.</p>
           <div class="tbl-wrap">
             <table class="dist">
@@ -875,20 +892,26 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
       return a + (b - a) * fi;
     }
     const chartMsgs = [];
+    const tblSel = (document.querySelector('input[name="perfTbl"]:checked') || {}).value || "auto";
     let paC = null, tC = oat, wTO = hasMB ? toW : (P.mtow || 2557);
     if (T && pa !== null && oat !== null) {
       paC = Math.max(0, pa);
       if (pa > 6000) { paC = null; chartMsgs.push("pressure altitude above 6000 ft is outside the AFM tables"); }
       if (oat < -25 || oat > 50) { paC = null; chartMsgs.push("OAT outside the AFM tables (−25 to 50 °C)"); }
-      if (wTO > 2557) { chartMsgs.push(`takeoff weight ${fmt(wTO, 0)} lbs is above the 2557 lbs table, 2557 lbs used`); wTO = 2557; }
-      if (wTO < 2116) wTO = 2116;
+      if (tblSel === "auto" && wTO > 2557) { chartMsgs.push(`takeoff weight ${fmt(wTO, 0)} lbs is above the 2557 lbs table, 2557 lbs used`); wTO = 2557; }
+      if (tblSel === "auto" && wTO < 2116) wTO = 2116;
+      if (tblSel !== "auto" && hasMB && toW > +tblSel) chartMsgs.push(`takeoff weight ${fmt(toW, 0)} lbs is above the ${tblSel} lbs table you picked: distances are not conservative`);
     }
     const chart = { toGR: null, toD: null, ldGR: null, ldD: null };
     if (T && paC !== null) {
       const ws = T.takeoff.map((x) => x.weight);
-      let hi = 0; while (hi < ws.length - 1 && ws[hi + 1] >= wTO) hi++;
-      const lo = Math.min(hi + 1, ws.length - 1);
-      const f = ws[hi] === ws[lo] ? 0 : (ws[hi] - wTO) / (ws[hi] - ws[lo]);
+      let hi = 0, lo, f;
+      if (tblSel !== "auto") { hi = lo = Math.max(0, ws.indexOf(+tblSel)); f = 0; }
+      else {
+        while (hi < ws.length - 1 && ws[hi + 1] >= wTO) hi++;
+        lo = Math.min(hi + 1, ws.length - 1);
+        f = ws[hi] === ws[lo] ? 0 : (ws[hi] - wTO) / (ws[hi] - ws[lo]);
+      }
       for (const k of ["gr", "d50"]) {
         const a = look(T.takeoff[hi][k], paC, tC), b = look(T.takeoff[lo][k], paC, tC);
         chart[k === "gr" ? "toGR" : "toD"] = a + (b - a) * f;
@@ -913,7 +936,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     row("ldGR", rLD, cLD, "ldGRc", "ldGRr");
     const ldDc = row("ldD", rLD, cLD, "ldDc", "ldDr");
     $("chartNote").textContent = paC !== null
-      ? `Interpolated from the AFM Section 5 tables at ${fmtInt(paC)} ft, ${fmt(tC, 0)} °C, takeoff ${fmt(wTO, 0)} lbs, landing 2557 lbs (the AFM gives landing data at max weight only).`
+      ? `Interpolated from the AFM Section 5 tables at ${fmtInt(paC)} ft, ${fmt(tC, 0)} °C, takeoff ${tblSel === "auto" ? fmt(wTO, 0) + " lbs (interpolated between tables)" : tblSel + " lbs table"}, landing 2557 lbs (the AFM gives landing data at max weight only).`
       : (chartMsgs.length ? "No chart value: " + chartMsgs.join("; ") + "." : "Chart values appear once field elevation, altimeter setting and temperature are entered.");
     const todr = toDc === null || P.sfTO === null ? null : toDc * P.sfTO;
     const ldr = ldDc === null || P.sfLD === null ? null : ldDc * P.sfLD;
