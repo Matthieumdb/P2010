@@ -191,6 +191,16 @@ input.wide { text-align: left; font: 400 15px var(--f-mono); }
 .pill.warn { background: var(--warn-soft); color: var(--warn); }
 
 .dist td.num { min-width: 72px; }
+/* Wind against the runway: compass diagram + every runway end of the airport. */
+.windbox { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 20px; align-items: start; }
+.windbox svg { width: 100%; max-width: 240px; height: auto; display: block; margin-inline: auto; }
+table.rwys tbody tr { cursor: pointer; }
+table.rwys tbody tr:hover td { background: var(--field); }
+table.rwys tr.sel td { background: var(--accent-soft); font-weight: 600; }
+table.rwys td b.bad, .bad-t { color: var(--nogo); }
+table.rwys td b.warn { color: var(--warn); }
+.tag { font: 600 11px var(--f-body); padding: 2px 7px; border-radius: 999px; background: var(--go-soft); color: var(--go); margin-left: 6px; }
+.cell.warnc { background: var(--warn-soft); } .cell.warnc .v { color: var(--warn); }
 .formula { font-size: 13px; color: var(--muted); }
 
 details.params { border-top: .5px solid var(--line); }
@@ -200,6 +210,7 @@ details.params .body { padding-top: 0; }
 .tbc { color: var(--warn); font-size: 12px; }
 .metar-parsed { font-size: 13px; color: var(--muted); min-height: 1.2em; }
 footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
+@media (max-width: 640px) { .windbox { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 520px) {
   .brand h1 { font-size: 30px; }
   .fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } .out { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -319,6 +330,22 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
         </div>
 
         <div>
+          <h3 style="margin-bottom:8px">Wind and runways</h3>
+          <div class="windbox">
+            <svg id="windSvg" viewBox="0 0 220 220" role="img" aria-label="Wind relative to the runway"></svg>
+            <div>
+              <div class="tbl-wrap">
+                <table class="rwys">
+                  <thead><tr><th>Runway</th><th>Length</th><th>Head / tail</th><th>Crosswind</th><th>Gust X</th></tr></thead>
+                  <tbody id="rwyBody"></tbody>
+                </table>
+              </div>
+              <p class="hint" style="margin-top:8px" id="windNote"></p>
+            </div>
+          </div>
+        </div>
+
+        <div>
           <h3 style="margin-bottom:8px">Distances</h3>
           <div class="field" style="margin-bottom:10px">
             <label id="perfTblLbl">AFM takeoff table</label>
@@ -416,8 +443,8 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
   <footer>Flight preparation aid only. The aircraft POH/AFM is the reference, and the pilot in command remains responsible for the decision.</footer>
 </div>
 
-<script src="aircraft.js?v=202610270111"></script>
-<script src="performance.js?v=202610270111"></script>
+<script src="aircraft.js?v=202611120400"></script>
+<script src="performance.js?v=202611120400"></script>
 <script>
 (function () {
   const DEFAULT_PARAMS = {
@@ -773,6 +800,9 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
       const w2 = t.match(/\s(\d{3})(\d{2})(?:G(\d{2}))?\s/);
       if (w2) { out.wdir = +w2[1]; out.wspd = +w2[2]; out.wgst = w2[3] ? +w2[3] : ""; }
     }
+    // Variable direction group, e.g. 180V240.
+    const vr = t.match(/\s(\d{3})V(\d{3})\s/);
+    if (vr) { out.vfrom = +vr[1]; out.vto = +vr[2]; }
     const tp = t.match(/\s(M?\d{2})\/(M?\d{2})?\s/);
     if (tp) out.oat = parseInt(tp[1].replace("M", "-"), 10);
     const a = t.match(/\sA(\d{4})\s/);
@@ -788,11 +818,11 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     if (m.wspd !== undefined) {
       $("wdir").value = m.vrb ? "" : m.wdir;
       $("wspd").value = m.wspd; $("wgst").value = m.wgst;
-      bits.push(`wind ${m.vrb ? "VRB" : m.wdir + "°"}/${m.wspd} kt${m.wgst ? " G" + m.wgst : ""}`);
+      bits.push(`wind ${m.vrb ? "VRB" : m.wdir + "°"}/${m.wspd} kt${m.wgst ? " G" + m.wgst : ""}${m.vfrom !== undefined ? ", varying " + m.vfrom + "°–" + m.vto + "°" : ""}`);
     }
     if (m.oat !== undefined) { $("oat").value = m.oat; bits.push(`T ${m.oat} °C`); }
     if (m.alt !== undefined) { $("alt").value = m.alt; bits.push(m.qnh ? `Q${m.qnh} = ${m.alt} inHg` : `A ${m.alt} inHg`); }
-    $("metarParsed").textContent = bits.length ? "Read: " + bits.join(" · ") + (m.vrb ? " · variable wind: enter the most unfavourable direction" : "") : "Nothing recognised in this METAR.";
+    $("metarParsed").textContent = bits.length ? "Read: " + bits.join(" · ") + (m.vrb ? " · variable wind: crosswind taken as the full wind speed, no headwind credit" : "") : "Nothing recognised in this METAR.";
   }
 
   // ---------- CALC ----------
@@ -857,23 +887,40 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     $("sDA").textContent = (pa !== null && oat !== null) ? `ft · ISA ${oat - isa >= 0 ? "+" : ""}${fmt(oat - isa, 1)}` : "ft";
 
     const wdir = num("wdir"), rwy = num("rwy");
-    const spd = P.gustMode === "gust" && num("wgst") ? num("wgst") : num("wspd");
-    let hw = null, xw = null, side = "";
-    if (wdir !== null && rwy !== null && spd !== null) {
-      const ang = ((wdir - rwy) % 360 + 540) % 360 - 180; // -180..180
-      const rad = ang * Math.PI / 180;
-      hw = Math.cos(rad) * spd; xw = Math.sin(rad) * spd;
-      side = Math.abs(xw) < 0.05 ? "" : (xw > 0 ? "from the right" : "from the left");
-      $("sXW").textContent = `kt ${side} · angle ${Math.abs(Math.round(ang))}°`;
+    const steady = num("wspd"), gust = num("wgst");
+    const spd = P.gustMode === "gust" && gust ? gust : steady;
+    // METAR extras: VRB wind (no direction) and a variable sector (dddVddd).
+    const MV = parseMetar($("metar").value || "");
+    const vrb = wdir === null && !!MV.vrb;
+    const sector = wdir !== null && MV.vfrom !== undefined && MV.wdir === wdir ? [MV.vfrom, MV.vto] : null;
+    let hw = null, xw = null, side = "", gxw = null, vxw = null;
+    if (rwy !== null && spd !== null) {
+      if (wdir !== null) {
+        const c = comps(wdir, rwy, spd);
+        hw = c.hw; xw = c.xw;
+        side = Math.abs(xw) < 0.05 ? "" : (xw > 0 ? "from the right" : "from the left");
+        if (gust && gust > spd) gxw = Math.abs(comps(wdir, rwy, gust).xw);
+        if (sector) vxw = worstXw(rwy, gust || spd, sector[0], sector[1]);
+        $("sXW").textContent = `kt ${side} · ${Math.abs(Math.round(c.ang))}° off${gxw !== null ? " · gust " + fmt(gxw, 0) : ""}${vxw !== null ? " · up to " + fmt(vxw, 0) + " in sector" : ""}`;
+      } else if (vrb) {
+        // Variable direction: no headwind credit, crosswind could be the whole wind.
+        hw = 0; xw = spd; side = "variable";
+        if (gust && gust > spd) gxw = gust;
+        $("sXW").textContent = `kt · VRB, worst case${gxw !== null ? " · gust " + fmt(gxw, 0) : ""}`;
+      } else $("sXW").textContent = "kt";
     } else { $("sXW").textContent = "kt"; }
     const tail = hw !== null && hw < -0.05;
     $("kHW").textContent = tail ? "Tailwind" : "Headwind";
     $("oHW").textContent = hw === null ? "—" : fmt(Math.abs(hw), 1);
-    $("sHW").textContent = hw === null ? "kt" : `kt · ${P.gustMode === "gust" ? "gust" : "steady"} ${fmt(spd, 0)} kt`;
+    $("sHW").textContent = hw === null ? "kt" : vrb ? "kt · VRB, no credit" : `kt · ${P.gustMode === "gust" ? "gust" : "steady"} ${fmt(spd, 0)} kt`;
     $("oXW").textContent = xw === null ? "—" : fmt(Math.abs(xw), 1);
     const xwBad = xw !== null && P.xwMax && Math.abs(xw) > P.xwMax;
+    // Steady crosswind within the demonstrated value but gusts or the variable sector beyond it.
+    const xwGustOver = !xwBad && P.xwMax && ((gxw !== null && gxw > P.xwMax) || (vxw !== null && vxw > P.xwMax));
     setState("cHW", hw !== null, !tail, true);
     setState("cXW", xw !== null, !xwBad);
+    $("cXW").classList.toggle("warnc", !!xwGustOver);
+    renderWind(P, { wdir, rwy, spd, gust, vrb, sector, hw, xw });
 
     // Wind corrections use whole knots, as on the correction key (9 kt × 33 ft).
     const hwKt = hw === null ? 0 : Math.round(Math.abs(hw));
@@ -964,8 +1011,9 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     if (todr !== null && toda !== null) C.push(todrBad ? ["nogo", `TODR ${fmtInt(todr)} ft > TODA ${toda} ft`] : ["go", `TODR ${fmtInt(todr)} ft ≤ TODA ${toda} ft`]);
     if (ldr !== null && lda !== null) C.push(ldrBad ? ["nogo", `LDR ${fmtInt(ldr)} ft > LDA ${lda} ft`] : ["go", `LDR ${fmtInt(ldr)} ft ≤ LDA ${lda} ft`]);
     if (xw !== null) {
-      if (P.xwMax) C.push(xwBad ? ["nogo", `Crosswind ${fmt(Math.abs(xw), 0)} kt > ${P.xwMax} kt`] : ["go", `Crosswind ${fmt(Math.abs(xw), 0)} kt ≤ ${P.xwMax} kt`]);
+      if (P.xwMax) C.push(xwBad ? ["nogo", `Crosswind ${fmt(Math.abs(xw), 0)} kt > ${P.xwMax} kt demonstrated`] : ["go", `Crosswind ${fmt(Math.abs(xw), 0)} kt ≤ ${P.xwMax} kt demonstrated`]);
       else C.push(["warn", `Crosswind ${fmt(Math.abs(xw), 0)} kt: max demonstrated crosswind not set`]);
+      if (xwGustOver) C.push(["warn", `${gxw !== null && gxw > P.xwMax ? "Gust crosswind " + fmt(gxw, 0) + " kt" : "Crosswind up to " + fmt(vxw, 0) + " kt in the variable sector"} exceeds the ${P.xwMax} kt demonstrated`]);
     }
     if (tail) C.push(["warn", `Tailwind ${fmt(Math.abs(hw), 0)} kt: consider the opposite runway`]);
     $("checks").innerHTML = C.length ? C.map(([s, t]) => `<li><span class="pill ${s}">${s === "go" ? "OK" : s === "nogo" ? "No go" : "Check"}</span><span>${t}</span></li>`).join("") : `<li><span class="pill warn">—</span><span>Enter data to run the checks.</span></li>`;
@@ -989,6 +1037,88 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
   }
 
   const LAMPS = {};
+  // Wind components for a runway heading: hw > 0 headwind, xw > 0 from the right.
+  function comps(dir, hdg, spd) {
+    const ang = ((dir - hdg) % 360 + 540) % 360 - 180, r = ang * Math.PI / 180;
+    return { hw: Math.cos(r) * spd, xw: Math.sin(r) * spd, ang };
+  }
+  function worstXw(hdg, spd, from, to) {
+    let w = 0; const span = ((to - from) % 360 + 360) % 360;
+    for (let d = 0; d <= span; d++) w = Math.max(w, Math.abs(comps(from + d, hdg, spd).xw));
+    return w;
+  }
+  const rwyName = (h) => String(Math.round(h / 10) % 36 || 36).padStart(2, "0");
+  function renderWind(P, W) {
+    const max = P.xwMax;
+    // Runway list: every runway end of the airport, or the heading typed in.
+    const list = RUNWAYS.length ? RUNWAYS.map((r, i) => ({ ...r, i })) : (W.rwy !== null ? [{ id: rwyName(W.rwy), hdg: W.rwy, len: num("toda"), i: -1 }] : []);
+    const haveWind = W.spd !== null && (W.wdir !== null || W.vrb);
+    const sel = $("rwySel").value;
+    let best = -1, bv = -1e9;
+    const rows = list.map((r) => {
+      if (!haveWind) return { r };
+      const c = W.vrb ? { hw: 0, xw: W.spd } : comps(W.wdir, r.hdg, W.spd);
+      const g = W.gust && W.gust > W.spd ? (W.vrb ? W.gust : Math.abs(comps(W.wdir, r.hdg, W.gust).xw)) : null;
+      const v = W.sector ? worstXw(r.hdg, W.gust || W.spd, W.sector[0], W.sector[1]) : null;
+      const score = c.hw - Math.max(0, Math.abs(c.xw) - (max || 99)) * 10;
+      if (score > bv + 1e-6) { bv = score; best = r.i; }
+      return { r, c, g, v };
+    });
+    $("rwyBody").innerHTML = rows.length ? rows.map(({ r, c, g, v }) => {
+      const isSel = r.i === -1 || (String(r.i) === sel && r.hdg === W.rwy);
+      if (!c) return `<tr class="${isSel ? "sel" : ""}" data-i="${r.i}"><td>${r.id}</td><td>${r.len ? r.len.toLocaleString() + " ft" : "—"}</td><td>—</td><td>—</td><td>—</td></tr>`;
+      const ax = Math.abs(c.xw), sideTxt = W.vrb ? "" : ax >= .5 ? (c.xw > 0 ? " R" : " L") : "";
+      const xcls = max && ax > max ? "bad" : "";
+      const gx = g === null && v === null ? null : Math.max(g ?? 0, v ?? 0);
+      const gcls = max && gx !== null && gx > max ? "warn" : "";
+      return `<tr class="${isSel ? "sel" : ""}" data-i="${r.i}"><td>${r.id}${r.i === best && rows.length > 1 && !W.vrb ? '<span class="tag">Best</span>' : ""}</td>` +
+        `<td>${r.len ? r.len.toLocaleString() + " ft" : "—"}</td>` +
+        `<td>${c.hw < -0.5 ? '<b class="bad">Tail ' + fmt(-c.hw, 0) + "</b>" : "Head " + fmt(Math.max(0, c.hw), 0)} kt</td>` +
+        `<td><b class="${xcls}">${fmt(ax, 0)}${sideTxt}</b> kt</td><td>${gx === null ? "—" : `<b class="${gcls}">${fmt(gx, 0)}</b> kt`}</td></tr>`;
+    }).join("") : `<tr><td colspan="5" class="empty">Fetch the METAR or enter a runway heading.</td></tr>`;
+    $("windNote").textContent = !haveWind ? "Enter or fetch the wind to see the components." :
+      `Tap a runway to use it. Components use the ${W.vrb ? "variable wind as a pure crosswind" : (P.gustMode === "gust" && W.gust ? "gust" : "steady") + " wind"}${W.sector ? ", Gust X includes the variable sector " + W.sector[0] + "°–" + W.sector[1] + "°" : ""}. Demonstrated crosswind ${max ?? "?"} kt (AFM Section 5).`;
+
+    // Compass diagram, north up.
+    const C = 110, R = 92, pt = (deg, rad) => [C + rad * Math.sin(deg * Math.PI / 180), C - rad * Math.cos(deg * Math.PI / 180)];
+    const font = 'font-family="-apple-system, BlinkMacSystemFont, Inter, sans-serif"';
+    let s = `<circle cx="${C}" cy="${C}" r="${R}" fill="var(--field)"/>`;
+    for (let d = 0; d < 360; d += 30) {
+      const [x1, y1] = pt(d, R - (d % 90 ? 5 : 9)), [x2, y2] = pt(d, R);
+      s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="var(--muted)" stroke-width="${d % 90 ? 1 : 1.6}"/>`;
+    }
+    ["N", "E", "S", "W"].forEach((l, k) => { const [x, y] = pt(k * 90, R - 18); s += `<text x="${x.toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="600" ${font} fill="var(--muted)">${l}</text>`; });
+    if (W.rwy !== null) {
+      const h = W.rwy;
+      s += `<g transform="rotate(${h} ${C} ${C})"><rect x="${C - 11}" y="${C - 62}" width="22" height="124" rx="3" fill="var(--ink)" opacity=".85"/>` +
+        `<line x1="${C}" y1="${C - 50}" x2="${C}" y2="${C + 50}" stroke="var(--panel)" stroke-width="1.5" stroke-dasharray="6 5" opacity=".7" transform="scale(1 .5)" transform-origin="${C} ${C}"/></g>`;
+      const [ax, ay] = pt(h + 180, 47), [bx, by] = pt(h, 47);
+      s += `<text x="${ax.toFixed(1)}" y="${(ay + 4).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="700" ${font} fill="var(--panel)">${rwyName(h)}</text>`;
+      s += `<text x="${bx.toFixed(1)}" y="${(by + 4).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="700" ${font} fill="var(--panel)">${rwyName(h + 180)}</text>`;
+    }
+    if (W.sector) {
+      const [x1, y1] = pt(W.sector[0], R), [x2, y2] = pt(W.sector[1], R), span = ((W.sector[1] - W.sector[0]) % 360 + 360) % 360;
+      s += `<path d="M${C} ${C} L${x1.toFixed(1)} ${y1.toFixed(1)} A${R} ${R} 0 ${span > 180 ? 1 : 0} 1 ${x2.toFixed(1)} ${y2.toFixed(1)} Z" fill="var(--accent-soft)"/>`;
+    }
+    if (haveWind && W.wdir !== null && W.spd > 0) {
+      const bad = max && W.xw !== null && Math.abs(W.xw) > max;
+      const col = bad ? "var(--nogo)" : "var(--accent)";
+      const [tx, ty] = pt(W.wdir, R - 2), [hx, hy] = pt(W.wdir, 30);
+      const [l1x, l1y] = pt(W.wdir - 9, 44), [l2x, l2y] = pt(W.wdir + 9, 44);
+      s += `<line x1="${tx.toFixed(1)}" y1="${ty.toFixed(1)}" x2="${hx.toFixed(1)}" y2="${hy.toFixed(1)}" stroke="${col}" stroke-width="3.5" stroke-linecap="round"/>`;
+      s += `<path d="M${hx.toFixed(1)} ${hy.toFixed(1)} L${l1x.toFixed(1)} ${l1y.toFixed(1)} L${l2x.toFixed(1)} ${l2y.toFixed(1)} Z" fill="${col}"/>`;
+      let [lx, ly] = pt(W.wdir, R + 0.5); lx = Math.max(22, Math.min(198, lx));
+      s += `<rect x="${(lx - 34).toFixed(1)}" y="${(ly - 10).toFixed(1)}" width="68" height="20" rx="10" fill="${col}"/>` +
+        `<text x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="600" ${font} fill="#fff">${String(W.wdir).padStart(3, "0")}°/${fmt(W.spd, 0)}${W.gust && W.gust > W.spd ? "G" + fmt(W.gust, 0) : ""}</text>`;
+    } else if (haveWind && W.vrb) {
+      s += `<circle cx="${C}" cy="${C}" r="${R - 26}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="5 5"/>` +
+        `<text x="${C}" y="${C + R - 34}" text-anchor="middle" font-size="11" font-weight="600" ${font} fill="var(--accent)">VRB ${fmt(W.spd, 0)} kt</text>`;
+    } else if (W.rwy === null) {
+      s += `<text x="${C}" y="${C + 4}" text-anchor="middle" font-size="12" ${font} fill="var(--muted)">No wind or runway yet</text>`;
+    }
+    $("windSvg").setAttribute("viewBox", "-16 -16 252 252");
+    $("windSvg").innerHTML = s;
+  }
   function setState(id, has, ok, neutralWhenOk) {
     const el = $(id); el.classList.remove("ok", "bad");
     if (!has) return; el.classList.add(ok ? (neutralWhenOk ? "x" : "ok") : "bad");
@@ -1045,6 +1175,10 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
   });
   $("icao").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); fetchWx(); } });
   $("btnMetar").addEventListener("click", fetchWx);
+  $("rwyBody").addEventListener("click", (e) => {
+    const tr = e.target.closest("tr[data-i]"); if (!tr || tr.dataset.i === "-1") return;
+    $("rwySel").value = tr.dataset.i; applyRunway(); compute();
+  });
   document.querySelector(".tabs").addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (b) { location.hash = b.dataset.tab; showTab(b.dataset.tab); } });
   $("verdict").addEventListener("click", (e) => { const c = e.target.closest(".vchip"); if (!c) return; location.hash = c.dataset.go; showTab(c.dataset.go); });
   window.addEventListener("hashchange", () => showTab(location.hash.slice(1)));
