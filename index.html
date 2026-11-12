@@ -200,6 +200,18 @@ input.auto { color: var(--accent); }
 .pill.warn { background: var(--warn-soft); color: var(--warn); }
 
 .dist td.num { min-width: 72px; }
+/* Runway available against the distance required. */
+.rbars { display: grid; gap: 14px; margin-top: 14px; }
+.rbar .top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; font-size: 14px; margin-bottom: 6px; }
+.rbar .top b { font-weight: 600; }
+.rtrack { position: relative; height: 22px; border-radius: 6px; background: var(--field); overflow: hidden; }
+.rtrack .avail { position: absolute; inset: 0 auto 0 0; background: var(--seg); }
+.rtrack .need { position: absolute; top: 4px; bottom: 4px; left: 0; border-radius: 4px; background: #34c759; }
+.rtrack .need.bad { background: var(--nogo); }
+.rtrack .over { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(45deg, var(--nogo) 0 6px, var(--nogo-soft) 6px 12px); }
+.rtrack .gr { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--ink); opacity: .7; }
+.rtrack .end { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--ink); }
+.rbar .sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
 /* Wind against the runway: compass diagram + every runway end of the airport. */
 .windbox { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 20px; align-items: start; }
 .windbox svg { width: 100%; max-width: 240px; height: auto; display: block; margin-inline: auto; }
@@ -402,6 +414,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
             </table>
           </div>
           <p class="formula" style="margin-top:8px" id="distFormula"></p>
+          <div class="rbars" id="rbars"></div>
         </div>
 
         <div>
@@ -475,8 +488,8 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
   <footer>Flight preparation aid only. The aircraft POH/AFM is the reference, and the pilot in command remains responsible for the decision.</footer>
 </div>
 
-<script src="aircraft.js?v=202611120440"></script>
-<script src="performance.js?v=202611120440"></script>
+<script src="aircraft.js?v=202611120500"></script>
+<script src="performance.js?v=202611120500"></script>
 <script>
 (function () {
   const DEFAULT_PARAMS = {
@@ -1013,9 +1026,9 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
       const r = (base === null || c.v === null) ? null : base + (rc || 0) + c.v;
       $(rId).textContent = fmtInt(r); return r;
     }
-    row("toGR", rTO, cTO, "toGRc", "toGRr");
+    const toGRc = row("toGR", rTO, cTO, "toGRc", "toGRr");
     const toDc = row("toD", rTO, cTO, "toDc", "toDr");
-    row("ldGR", rLD, cLD, "ldGRc", "ldGRr");
+    const ldGRc = row("ldGR", rLD, cLD, "ldGRc", "ldGRr");
     const ldDc = row("ldD", rLD, cLD, "ldDc", "ldDr");
     $("chartNote").textContent = paC !== null
       ? `Interpolated from the AFM Section 5 tables at ${fmtInt(paC)} ft, ${fmt(tC, 0)} °C, takeoff ${tblSel === "auto" ? fmt(wTO, 0) + " lbs (interpolated between tables)" : tblSel + " lbs table"}, landing 2557 lbs (the AFM gives landing data at max weight only).`
@@ -1028,6 +1041,7 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     const todrBad = todr !== null && toda !== null && Math.round(todr) > toda;
     const ldrBad = ldr !== null && lda !== null && Math.round(ldr) > lda;
     $("rowTODR").classList.toggle("bad", todrBad); $("rowLDR").classList.toggle("bad", ldrBad);
+    $("rbars").innerHTML = rbar("Takeoff", "TODR", todr, "TODA", toda, toGRc) + rbar("Landing", "LDR", ldr, "LDA", lda, ldGRc);
     $("distFormula").textContent = `Corrected = chart + runway (${grass ? "grass +10 % GR, " : ""}slope ${fmt(slope, 1)} %) ${tail ? "+ tailwind" : "− headwind"} (${hwKt} kt × ${tail ? (P.toTw ?? "?") + " / " + (P.ldTw ?? "?") : (P.toHw ?? "?") + " / " + (P.ldHw ?? "?")} ft/kt) · TODR = × ${P.sfTO ?? "?"} · LDR = × ${P.sfLD ?? "?"}`;
 
     // Checks
@@ -1074,6 +1088,20 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
   }
 
   const LAMPS = {};
+  // One bar per phase: runway available (grey), distance required with the safety factor (green / red), ground roll tick.
+  function rbar(phase, need, req, avail, have, gr) {
+    if (req === null || have === null || !have) return `<div class="rbar"><div class="top"><span><b>${phase}</b> · ${need} vs ${avail}</span><span class="pill warn">—</span></div><div class="rtrack"></div><div class="sub">Needs the chart distance and the ${avail}.</div></div>`;
+    const r = Math.round(req), scale = Math.max(r, have) * 1.04, pc = (v) => (v / scale * 100).toFixed(2) + "%";
+    const bad = r > have, margin = have - r;
+    return `<div class="rbar"><div class="top"><span><b>${phase}</b> · ${need} ${r.toLocaleString()} ft of ${have.toLocaleString()} ft ${avail}</span>` +
+      `<span class="pill ${bad ? "nogo" : margin < have * 0.1 ? "warn" : "go"}">${bad ? "Short " + (-margin).toLocaleString() + " ft" : "Margin " + margin.toLocaleString() + " ft · " + Math.round(margin / have * 100) + " %"}</span></div>` +
+      `<div class="rtrack" role="img" aria-label="${need} ${r} ft, ${avail} ${have} ft"><div class="avail" style="width:${pc(have)}"></div>` +
+      `<div class="need${bad ? " bad" : ""}" style="width:${pc(Math.min(r, have))}"></div>` +
+      (bad ? `<div class="over" style="left:${pc(have)};width:${pc(r - have)}"></div>` : "") +
+      (gr !== null ? `<div class="gr" style="left:${pc(gr)}" title="Ground roll ${Math.round(gr)} ft"></div>` : "") +
+      `<div class="end" style="left:${pc(have)}"></div></div>` +
+      `<div class="sub">Bar: ${need} with the safety factor · tick: ground roll ${gr !== null ? Math.round(gr).toLocaleString() + " ft" : "—"}, unfactored</div></div>`;
+  }
   // Flight time as h:mm, or decimal hours.
   function parseTime(str) {
     const t = String(str || "").trim().replace(",", ".");
