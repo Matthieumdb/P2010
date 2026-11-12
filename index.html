@@ -281,9 +281,9 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
         </div>
 
         <div class="gauge">
-          <h3>CG position</h3>
-          <svg id="cgSvg" viewBox="0 0 520 74" role="img" aria-label="Takeoff and landing CG against the limits"></svg>
-          <p class="formula">% MAC = arm / <span data-val="macDiv"></span> × 100 · limits <span data-val="macMin"></span>–<span data-val="macMax"></span> %</p>
+          <h3>CG envelope</h3>
+          <svg id="cgSvg" viewBox="0 0 520 300" role="img" aria-label="Weight against CG for takeoff, landing and zero fuel, inside the AFM envelope"></svg>
+          <p class="formula">% MAC = arm / <span data-val="macDiv"></span> × 100 · limits <span data-val="macMin"></span>–<span data-val="macMax"></span> % for all weights (AFM Section 2) · the line from takeoff to landing is the fuel burned, the dashed line runs on to zero fuel</p>
         </div>
       </div>
     </section>
@@ -443,8 +443,8 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
   <footer>Flight preparation aid only. The aircraft POH/AFM is the reference, and the pilot in command remains responsible for the decision.</footer>
 </div>
 
-<script src="aircraft.js?v=202611120400"></script>
-<script src="performance.js?v=202611120400"></script>
+<script src="aircraft.js?v=202611120420"></script>
+<script src="performance.js?v=202611120420"></script>
 <script>
 (function () {
   const DEFAULT_PARAMS = {
@@ -875,7 +875,8 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     setState("cTOMAC", hasMB, toMacOk); setState("cLMAC", hasMB, ldMacOk);
     $("rowTO").classList.toggle("bad", !!(hasMB && (towBad || !toMacOk)));
     $("rowLDG").classList.toggle("bad", !!(hasMB && (lwBad || !ldMacOk)));
-    drawGauge(P, hasMB ? toMac : null, hasMB ? ldMac : null);
+    const zfW = W - fuelL, zfM = M - fuelL * af;
+    drawEnvelope(P, hasMB ? { to: [toW, toMac], ld: [ldW, ldMac], zf: [zfW, mac(zfM / zfW)] } : null);
 
     // Performance
     const elev = num("elev"), alt = num("alt"), oat = num("oat");
@@ -1124,34 +1125,44 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     if (!has) return; el.classList.add(ok ? (neutralWhenOk ? "x" : "ok") : "bad");
   }
 
-  function drawGauge(P, toMac, ldMac) {
-    const svg = $("cgSvg"); const lo = P.macMin ?? 19, hi = P.macMax ?? 32;
-    const vals = [toMac, ldMac].filter((v) => v !== null && isFinite(v));
-    const min = Math.floor(Math.min(lo - 4, ...vals) / 2) * 2, max = Math.ceil(Math.max(hi + 4, ...vals) / 2) * 2;
-    const L = 20, R = 500, x = (v) => L + (v - min) / (max - min) * (R - L);
-    let s = `<rect x="${L}" y="28" width="${R - L}" height="14" rx="3" fill="var(--nogo-soft)"/>`;
-    s += `<rect x="${x(lo)}" y="28" width="${x(hi) - x(lo)}" height="14" fill="var(--go-soft)" stroke="var(--go)" stroke-width="1"/>`;
-    for (let v = min; v <= max; v += 2) {
-      s += `<line x1="${x(v)}" x2="${x(v)}" y1="42" y2="47" stroke="var(--muted)" stroke-width="1"/>`;
-      s += `<text x="${x(v)}" y="60" text-anchor="middle" font-size="10" font-family="-apple-system, BlinkMacSystemFont, Inter, sans-serif" fill="var(--muted)">${v}</text>`;
+  // Weight / CG envelope: the AFM limits are 19–32 % MAC at every weight up to the MTOW.
+  function drawEnvelope(P, pts) {
+    const svg = $("cgSvg"), lo = P.macMin ?? 19, hi = P.macMax ?? 32, mtow = P.mtow || 2557, mlw = P.mlw || mtow;
+    const all = pts ? Object.values(pts).filter((p) => isFinite(p[0]) && isFinite(p[1])) : [];
+    const xMin = Math.floor(Math.min(lo - 4, ...all.map((p) => p[1])) / 2) * 2, xMax = Math.ceil(Math.max(hi + 4, ...all.map((p) => p[1])) / 2) * 2;
+    const yMin = Math.floor(Math.min(1600, ...all.map((p) => p[0])) / 100) * 100, yMax = Math.ceil(Math.max(mtow + 100, ...all.map((p) => p[0] + 50)) / 100) * 100;
+    const L = 52, R = 508, T = 26, B = 262;
+    const x = (v) => L + (v - xMin) / (xMax - xMin) * (R - L), y = (w) => B - (w - yMin) / (yMax - yMin) * (B - T);
+    const font = 'font-family="-apple-system, BlinkMacSystemFont, Inter, sans-serif"';
+    const t = (tx, ty, txt, o = "") => `<text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" font-size="11" ${font} fill="var(--muted)" ${o}>${txt}</text>`;
+    let s = "";
+    for (let v = xMin; v <= xMax; v += 2) s += `<line x1="${x(v)}" x2="${x(v)}" y1="${T}" y2="${B}" stroke="var(--line)"/>` + t(x(v), B + 16, v, 'text-anchor="middle"');
+    const ys = (yMax - yMin) / 100 > 8 ? 200 : 100;
+    for (let w = Math.ceil(yMin / ys) * ys; w <= yMax; w += ys) s += `<line x1="${L}" x2="${R}" y1="${y(w)}" y2="${y(w)}" stroke="var(--line)"/>` + t(L - 6, y(w) + 4, w, 'text-anchor="end"');
+    s += `<rect x="${x(lo)}" y="${y(mtow)}" width="${x(hi) - x(lo)}" height="${B - y(mtow)}" fill="var(--go-soft)" stroke="var(--go)" stroke-width="1.5"/>`;
+    s += t(x(lo) + 6, y(mtow) + 15, `MTOW ${mtow}`, 'font-weight="600" fill="var(--go)"');
+    if (mlw < mtow) s += `<line x1="${x(lo)}" x2="${x(hi)}" y1="${y(mlw)}" y2="${y(mlw)}" stroke="var(--go)" stroke-dasharray="5 4"/>` + t(x(lo) + 6, y(mlw) - 5, `MLW ${mlw}`, 'fill="var(--go)"');
+    // Arm in feet at the limits, on top.
+    if (P.macDiv) for (const v of [lo, hi]) s += t(x(v), T - 8, `${fmt(v / 100 * P.macDiv, 2)} ft`, 'text-anchor="middle"');
+    s += t(R, B + 34, "% MAC", 'text-anchor="end"') + t(L, B + 34, "fwd") + t(8, T - 8, "lbs");
+    if (pts) {
+      const P2 = (k) => pts[k] && isFinite(pts[k][0]) && isFinite(pts[k][1]) ? [x(pts[k][1]), y(pts[k][0])] : null;
+      const inside = (k) => { const [w, m] = pts[k], r = Math.round(m * 10) / 10; return r >= lo && r <= hi && w <= (k === "ld" ? mlw : mtow); };
+      const a = P2("to"), b = P2("ld"), z = P2("zf");
+      if (b && z) s += `<line x1="${b[0]}" y1="${b[1]}" x2="${z[0]}" y2="${z[1]}" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 4"/>`;
+      if (a && b) s += `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="var(--accent)" stroke-width="2.5"/>`;
+      const lab = (p, k, txt, dy) => {
+        const c = inside(k) ? "var(--ink)" : "var(--nogo)", right = p[0] < (L + R) / 2;
+        return `<text x="${(p[0] + (right ? 10 : -10)).toFixed(1)}" y="${(p[1] + dy).toFixed(1)}" text-anchor="${right ? "start" : "end"}" font-size="11" font-weight="600" ${font} fill="${c}">${txt} ${fmt(pts[k][1], 1)} %</text>`;
+      };
+      if (z) s += `<rect x="${z[0] - 4}" y="${z[1] - 4}" width="8" height="8" fill="var(--panel)" stroke="${inside("zf") ? "var(--muted)" : "var(--nogo)"}" stroke-width="2"/>` + lab(z, "zf", "Zero fuel", 4);
+      // Keep the takeoff and landing labels apart when the points are close.
+      const close = a && b && Math.abs(a[1] - b[1]) < 16;
+      if (b) s += `<circle cx="${b[0]}" cy="${b[1]}" r="5.5" fill="var(--panel)" stroke="${inside("ld") ? "var(--accent)" : "var(--nogo)"}" stroke-width="2.5"/>` + lab(b, "ld", "LDG", close ? 14 : 4);
+      if (a) s += `<circle cx="${a[0]}" cy="${a[1]}" r="6" fill="${inside("to") ? "var(--accent)" : "var(--nogo)"}"/>` + lab(a, "to", "T/O", close ? -8 : 4);
+    } else {
+      s += t((L + R) / 2, (T + B) / 2, "Enter the crew and fuel to plot the CG", 'text-anchor="middle" font-size="13"');
     }
-    const mark = (v, lbl, up) => {
-      if (v === null || !isFinite(v)) return "";
-      const ok = Math.round(v * 10) / 10 >= lo && Math.round(v * 10) / 10 <= hi;
-      const c = ok ? "var(--ink)" : "var(--nogo)";
-      const ty = up ? 20 : 20;
-      return `<line x1="${x(v)}" x2="${x(v)}" y1="24" y2="46" stroke="${c}" stroke-width="2.5"/>` +
-        `<text x="${x(v)}" y="${ty}" text-anchor="middle" font-size="11" font-weight="600" font-family="-apple-system, BlinkMacSystemFont, Inter, sans-serif" fill="${c}">${lbl} ${fmt(v, 1)}</text>`;
-    };
-    // Offset labels when the two marks would overlap.
-    if (toMac !== null && ldMac !== null && Math.abs(x(toMac) - x(ldMac)) < 90) {
-      const a = Math.min(toMac, ldMac) === ldMac;
-      s += mark(ldMac, "LDG", true).replace(/text-anchor="middle"/, `text-anchor="${a ? "end" : "start"}"`);
-      s += mark(toMac, "T/O", true).replace(/text-anchor="middle"/, `text-anchor="${a ? "start" : "end"}"`);
-    } else { s += mark(ldMac, "LDG", true) + mark(toMac, "T/O", true); }
-    s += `<text x="${L}" y="72" font-size="10" font-family="-apple-system, BlinkMacSystemFont, Inter, sans-serif" fill="var(--muted)">fwd</text>`;
-    s += `<text x="${R}" y="72" text-anchor="end" font-size="10" font-family="-apple-system, BlinkMacSystemFont, Inter, sans-serif" fill="var(--muted)">aft</text>`;
-    svg.setAttribute("viewBox", "0 0 520 76");
     svg.innerHTML = s;
   }
 
