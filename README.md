@@ -8,7 +8,10 @@ Static web app (`index.html` + `aircraft.js`) to prepare a Tecnam P2010 flight u
 - **Fleet**: aircraft list (registration, empty weight and moment, per-aircraft parameters) lives in `aircraft.js`.
 - **Weather**: enter the departure ICAO code; the page fetches the latest METAR, field elevation and runways (aviationweather.gov) and preselects the runway most into wind, with its length as TODA/LDA.
 
-Base distances are read from the POH charts and entered by hand.
+- **Offline**: a service worker keeps the app on the device (iPad: Share → Add to Home Screen) and the last weather per airport is saved, so the page works without a network.
+- **Print / PDF**: one-page-per-side recap for the flight file (W&B, CG envelope, fuel, conditions, distances, checks, METAR/TAF, signature lines).
+
+Base distances are interpolated from the AFM Section 5 tables (`performance.js`).
 
 aviationweather.gov does not allow direct browser calls (no CORS), so the page goes through public CORS relays (corsproxy.io, allorigins, codetabs). If none answers, paste the METAR by hand.
 

@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>P2010 Flight Prep</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="P2010">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
@@ -239,6 +248,34 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
   .vchip { padding: 10px 12px; } .vchip small { font-size: 17px; }
   .panel > h2 { padding-inline: 16px; } .body { padding-inline: 16px; } details.params summary { padding-inline: 16px; }
 }
+/* Printable recap: built on demand, only visible on paper / PDF. */
+.recap { display: none; }
+@media print {
+  :root:root:root { --bg: #fff; --panel: #fff; --ink: #000; --muted: #555; --line: rgba(0,0,0,.18); --field: #f2f2f7; --accent: #007aff; --accent-soft: rgba(0,122,255,.12);
+    --go: #1d7a35; --go-soft: rgba(52,199,89,.16); --nogo: #c00012; --nogo-soft: rgba(255,59,48,.14); --warn: #9a4f00; --warn-soft: rgba(255,149,0,.16); --seg: rgba(118,118,128,.14); --shadow: none; color-scheme: light; }
+  @page { size: auto; margin: 12mm; }
+  body { background: #fff; font-size: 11px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body > *:not(.recap) { display: none !important; }
+  .recap { display: block; color: #000; }
+  .recap h1 { font: 700 20px var(--f-display); margin: 0 0 2px; }
+  .recap .meta { color: var(--muted); font-size: 11px; margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+  .recap .verdict-line { display: flex; gap: 8px; margin-bottom: 10px; }
+  .recap .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+  .recap .blk { break-inside: avoid; border: .5px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  .recap .blk.wide { grid-column: 1 / -1; }
+  .recap h2 { font: 600 13px var(--f-display); margin: 0 0 6px; }
+  .recap table { font-size: 10.5px; } .recap th, .recap td { padding: 3px 4px; }
+  .recap svg { width: 100%; height: auto; max-height: 230px; }
+  .recap .kv { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px 10px; }
+  .recap .kv div { display: grid; } .recap .kv span { color: var(--muted); font-size: 10px; } .recap .kv b { font-size: 12px; font-weight: 600; }
+  .recap .raw { font-size: 10px; padding: 6px 8px; }
+  .recap .checks li { padding: 4px 8px; font-size: 10.5px; } .recap .pill { font-size: 10px; min-width: 40px; padding: 1px 6px; }
+  .recap .rbars { margin-top: 6px; gap: 6px; } .recap .rbar .top { font-size: 11px; } .recap .rtrack { height: 14px; }
+  .recap td.lbl span { display: inline; font-size: 9.5px; margin-left: 4px; }
+  .recap .formula, .recap .rbar .sub { font-size: 9.5px; }
+  .recap .sign { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 18px; font-size: 11px; }
+  .recap .sign div { border-top: 1px solid #000; padding-top: 4px; }
+}
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
@@ -264,6 +301,8 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     <label for="acSel" class="tlabel">Aircraft</label>
     <select id="acSel" class="acsel"></select>
     <button type="button" id="btnClear">Clear entries</button>
+    <button type="button" id="btnPrint">Print / PDF</button>
+    <span class="pill warn" id="netNote" hidden>Offline</span>
     <span class="note" id="exNote"></span>
   </div>
 
@@ -485,11 +524,13 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     </section>
   </main>
 
-  <footer>Flight preparation aid only. The aircraft POH/AFM is the reference, and the pilot in command remains responsible for the decision.</footer>
+  <footer class="noprint">Flight preparation aid only. The aircraft POH/AFM is the reference, and the pilot in command remains responsible for the decision.</footer>
 </div>
 
-<script src="aircraft.js?v=202611120500"></script>
-<script src="performance.js?v=202611120500"></script>
+<div id="recap" class="recap" aria-hidden="true"></div>
+
+<script src="aircraft.js?v=202611120530"></script>
+<script src="performance.js?v=202611120530"></script>
 <script>
 (function () {
   const DEFAULT_PARAMS = {
@@ -623,7 +664,8 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     const base = "https://aviationweather.gov/api/data/";
     // Home field: weather published every 10 min by the repo's GitHub Action (same data, no relay needed).
     const home = HOME_DATA + icao;
-    const [apt, met, taf] = await Promise.allSettled(icao === HOME ? [
+    const off = navigator.onLine === false;
+    const [apt, met, taf] = off ? [{}, {}, {}] : await Promise.allSettled(icao === HOME ? [
       getJSON(home + "-airport.json?t=" + Date.now(), true).catch(() => getJSON(base + "airport?ids=" + icao + "&format=json")),
       getJSON(home + "-metar.json?t=" + Date.now(), true).catch(() => getJSON(base + "metar?ids=" + icao + "&format=json&hours=3")),
       getJSON(home + "-taf.json?t=" + Date.now(), true).catch(() => getJSON(base + "taf?ids=" + icao + "&format=json"))
@@ -633,13 +675,23 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
       getJSON(base + "taf?ids=" + icao + "&format=json")
     ]);
     // Take the newest METAR among the published copy and the live feed.
-    const live = await liveMetar(icao).catch(() => null);
-    const metList = newest([met.status === "fulfilled" ? met.value : null, live]);
-    TAF = { icao, data: taf.status === "fulfilled" && taf.value && taf.value.length ? taf.value[0] : null };
+    const live = off ? null : await liveMetar(icao).catch(() => null);
+    let metList = newest([met.status === "fulfilled" ? met.value : null, live]);
+    let aptV = apt.status === "fulfilled" && apt.value && apt.value[0] ? apt.value[0] : null;
+    let tafV = taf.status === "fulfilled" && taf.value && taf.value.length ? taf.value[0] : null;
+    // Keep the last weather per airport so the page still works without a network (iPad in the aircraft).
+    const wxKey = "p2010-wx-" + icao, old = (() => { try { return JSON.parse(localStorage.getItem(wxKey)) || {}; } catch (e) { return {}; } })();
+    const fromCache = [];
+    if (!aptV && old.apt) { aptV = old.apt; fromCache.push("airport"); }
+    if (!metList.length && old.met) { metList = [old.met]; fromCache.push("METAR"); }
+    if (!tafV && old.taf) { tafV = old.taf; fromCache.push("TAF"); }
+    try { localStorage.setItem(wxKey, JSON.stringify({ apt: aptV, met: metList[0] || null, taf: tafV, saved: old.saved && fromCache.length ? old.saved : Date.now() })); } catch (e) {}
+    TAF = { icao, data: tafV };
     $("btnMetar").disabled = false;
     const msgs = []; let err = false;
-    if (apt.status === "fulfilled" && apt.value && apt.value[0]) {
-      const a = apt.value[0];
+    if (fromCache.length) { err = true; msgs.push(`${off ? "Offline" : "No answer"}: last saved ${fromCache.join(", ")}${old.saved ? " from " + new Date(old.saved).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }) : ""}`); }
+    if (aptV) {
+      const a = aptV;
       // The airport service gives elevation in metres.
       if (a.elev !== undefined && a.elev !== null) $("elev").value = Math.round(a.elev * 3.28084);
       RUNWAYS = runwayEnds(a);
@@ -1279,6 +1331,53 @@ footer { font-size: 12px; color: var(--muted); padding-bottom: 32px; }
     }
     svg.innerHTML = s;
   }
+
+  // ---------- PRINTABLE RECAP ----------
+  // Copies of what is on screen, without ids or input boxes.
+  function snap(el) {
+    const c = el.cloneNode(true);
+    c.querySelectorAll("input").forEach((i) => { const sp = document.createElement("span"); sp.textContent = i.value; i.replaceWith(sp); });
+    c.removeAttribute("id"); c.querySelectorAll("[id]").forEach((n) => n.removeAttribute("id"));
+    return c.outerHTML;
+  }
+  const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+  function buildRecap() {
+    compute();
+    const v = (id) => $(id).value, now = new Date();
+    const kv = (pairs) => `<div class="kv">${pairs.map(([k, val]) => `<div><span>${k}</span><b>${esc(val) || "—"}</b></div>`).join("")}</div>`;
+    const cell = (id) => $(id).textContent;
+    const chips = [...$("verdict").querySelectorAll(".vchip")].map((c) => { const st = c.classList.contains("go") ? "go" : c.classList.contains("nogo") ? "nogo" : "warn"; return `<span class="pill ${st}">${esc(c.firstChild.textContent.trim())}: ${esc(c.querySelector("small").textContent)}</span>`; }).join("");
+    const rw = RUNWAYS[+$("rwySel").value];
+    $("recap").innerHTML =
+      `<h1>${esc(AC ? AC.immat : "P2010")} · flight recap</h1>` +
+      `<div class="meta"><span>Prepared ${now.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })} (${now.toISOString().slice(11, 16)}Z)</span><span>Departure ${esc(v("icao"))}${rw ? " · runway " + rw.id : ""}</span><span>Tecnam P2010 · AFM Ed. 2 Rev. 17</span></div>` +
+      `<div class="verdict-line">${chips}</div>` +
+      `<div class="cols">` +
+      `<div class="blk"><h2>Weight &amp; balance</h2>${snap($("mbTable"))}${kv([["Takeoff weight", cell("oTOW") + " lbs"], ["Takeoff CG", cell("oTOMAC") + " %"], ["Landing weight", cell("oLW") + " lbs"], ["Landing CG", cell("oLMAC") + " %"]])}</div>` +
+      `<div class="blk"><h2>CG envelope</h2>${snap($("cgSvg"))}</div>` +
+      `<div class="blk"><h2>Fuel</h2>${kv([["Flight time", v("ftime")], ["Fuel flow", v("ffGph") + " gal/h"], ["Reserve", v("resMin") + " min"], ["On board", (v("fuelLb") || "—") + " lbs"],
+        ["Trip", cell("oTrip") + " lbs"], ["Minimum at ramp", cell("oReq") + " lbs"], ["At landing", cell("oLand") + " lbs"], ["Endurance", cell("oEnd")]])}<div style="margin-top:6px">${snap($("fbar"))}</div></div>` +
+      `<div class="blk"><h2>Conditions</h2>${kv([["Elevation", v("elev") + " ft"], ["Altimeter", v("alt") + " inHg"], ["OAT", v("oat") + " °C"], ["Pressure alt.", cell("oPA") + " ft"],
+        ["Density alt.", cell("oDA") + " ft"], ["Wind", (v("wdir") || "VRB") + "° / " + (v("wspd") || "—") + (v("wgst") ? "G" + v("wgst") : "") + " kt"], [$("kHW").textContent, cell("oHW") + " kt"], ["Crosswind", cell("oXW") + " kt"],
+        ["Runway hdg", v("rwy") + "°"], ["TODA / LDA", (v("toda") || "—") + " / " + (v("lda") || "—") + " ft"], ["Surface", $("surface").value], ["Slope", (v("slope") || "0") + " %"]])}</div>` +
+      `<div class="blk wide"><h2>Takeoff and landing distances</h2>${snap($("rowTODR").closest("table"))}${snap($("rbars"))}<p class="formula">${esc($("chartNote").textContent)}</p></div>` +
+      `<div class="blk"><h2>Checks</h2>${snap($("checks"))}</div>` +
+      `<div class="blk"><h2>Weather</h2><pre class="raw">${esc(v("metar") || "No METAR")}</pre><pre class="raw" style="margin-top:6px">${esc($("tafRaw").textContent)}</pre></div>` +
+      `</div>` +
+      `<div class="sign"><div>Pilot in command</div><div>Instructor / dispatcher</div><div>Signature</div></div>` +
+      `<p class="formula" style="margin-top:10px">Flight preparation aid only. The aircraft POH/AFM is the reference, and the pilot in command remains responsible for the decision.</p>`;
+  }
+  window.addEventListener("beforeprint", buildRecap);
+  $("btnPrint").addEventListener("click", () => { buildRecap(); window.print(); });
+
+  // ---------- OFFLINE ----------
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+  function netState() { $("netNote").hidden = navigator.onLine !== false; }
+  window.addEventListener("online", () => { netState(); fetchWx(); });
+  window.addEventListener("offline", netState);
+  netState();
 
   // ---------- INIT ----------
   const saved = load();
