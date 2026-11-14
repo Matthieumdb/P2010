@@ -604,7 +604,7 @@ table.aloft td:first-child { font-weight: 500; white-space: nowrap; }
               <tbody id="aloftBody"></tbody>
             </table>
           </div>
-          <p class="hint" style="margin-top:8px">Enter the stations and values from your briefing (1800wxbrief, for example). Direction in degrees true, speed in knots, temperature in °C.</p>
+          <p class="hint" style="margin-top:8px" id="aloftNote">Direction in degrees true, speed in knots, temperature in °C. Type an airport code above a column to fill it from the GFS model.</p>
         </div>
       </div>
     </section>
@@ -1565,6 +1565,138 @@ table.aloft td:first-child { font-weight: 500; white-space: nowrap; }
     if (mets[0] || taf) { try { localStorage.setItem("p2010-wx-" + icao, JSON.stringify({ apt: old.apt || null, met, taf, saved: Date.now() })); } catch (e) {} }
     return { metar: met ? met.rawOb || "" : "", taf: taf ? tafLines(taf.rawTAF) : "" };
   }
+  // ----- Route weather: stations along the line, SIGMET / G-AIRMET, GFS winds aloft -----
+  const homeFile = (name) => navigator.onLine === false ? Promise.resolve(null)
+    : getJSON(HOME_DATA + name + "?t=" + Date.now(), true).catch(() => null);
+  // Flat-earth projection in nautical miles around a reference latitude: fine over a few hundred miles.
+  const toXY = (p, lat0) => [p.lon * 60 * Math.cos(lat0 * Math.PI / 180), p.lat * 60];
+  function segInfo(p, a, b) {
+    const lat0 = (a.lat + b.lat) / 2, P = toXY(p, lat0), A = toXY(a, lat0), B = toXY(b, lat0);
+    const dx = B[0] - A[0], dy = B[1] - A[1], L2 = dx * dx + dy * dy;
+    const t = L2 ? Math.max(0, Math.min(1, ((P[0] - A[0]) * dx + (P[1] - A[1]) * dy) / L2)) : 0;
+    return { d: Math.hypot(P[0] - A[0] - t * dx, P[1] - A[1] - t * dy), t };
+  }
+  // Offshore platforms (e.g. "Viosca Knoll 786A") report METARs too; they are no use for a VFR route.
+  const offshore = (name) => /\b\d{2,4}[A-Z]?\s*,/.test(name || "");
+  function alongRoute(list, a, b, skip, max) {
+    // On a cross-country, only stations beside the route count, not those behind the departure or past the destination.
+    const local = segInfo(b, a, a).d < 5;
+    for (const lim of [25, 40]) {
+      const out = (list || []).filter((s) => s && isFinite(s.lat) && isFinite(s.lon) && !skip.includes(s.icaoId) && !offshore(s.name))
+        .map((s) => ({ s, ...segInfo(s, a, b) })).filter((x) => x.d <= lim && (local || (x.t > 0 && x.t < 1)))
+        .sort((x, y) => x.t - y.t || x.d - y.d);
+      if (out.length) {
+        // Spread the picks along the route rather than taking the first few.
+        if (out.length <= max) return out.map((x) => x.s);
+        return Array.from({ length: max }, (_, i) => out[Math.round(i * (out.length - 1) / (max - 1))].s);
+      }
+    }
+    return [];
+  }
+  function inPoly(p, poly) {
+    let c = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const yi = +poly[i].lat, xi = +poly[i].lon, yj = +poly[j].lat, xj = +poly[j].lon;
+      if ((yi > p.lat) !== (yj > p.lat) && p.lon < (xj - xi) * (p.lat - yi) / (yj - yi) + xi) c = !c;
+    }
+    return c;
+  }
+  // Points every ~5 nm along the route; a local flight checks a 25 nm ring around the field.
+  function routePoints(a, b) {
+    const d = segInfo(b, a, a).d, pts = [];
+    if (d < 5) { pts.push(a); for (let k = 0; k < 16; k++) { const q = k * Math.PI / 8; pts.push({ lat: a.lat + 25 / 60 * Math.cos(q), lon: a.lon + 25 / 60 * Math.sin(q) / Math.cos(a.lat * Math.PI / 180) }); } return pts; }
+    const n = Math.max(2, Math.ceil(d / 5));
+    for (let i = 0; i <= n; i++) pts.push({ lat: a.lat + (b.lat - a.lat) * i / n, lon: a.lon + (b.lon - a.lon) * i / n });
+    return pts;
+  }
+  const zt = (t) => { const d = new Date(typeof t === "number" ? t * 1000 : t); return isNaN(d) ? "" : String(d.getUTCHours()).padStart(2, "0") + String(d.getUTCMinutes()).padStart(2, "0") + "Z"; };
+  const GA_NAME = { IFR: "IFR ceilings / visibility", MT_OBSC: "mountains obscured", "TURB-LO": "moderate turbulence below FL180", "TURB-HI": "moderate turbulence above FL180",
+    SFC_WND: "sustained surface wind over 30 kt", LLWS: "low-level wind shear", ICE: "moderate icing", M_FZLVL: "multiple freezing levels" };
+  const ftLvl = (v) => v === null || v === undefined || v === "" ? "" : (String(v).toUpperCase() === "SFC" ? "SFC" : (isFinite(+v) ? (+v >= 1000 ? "FL" + Math.round(+v / 100) : +v < 180 ? (+v * 100) + " ft" : "FL" + v) : String(v)));
+  function hazards(pts, sig, gair) {
+    const out = [];
+    for (const s of sig || []) {
+      if (!Array.isArray(s.coords) || s.coords.length < 3 || !pts.some((p) => inPoly(p, s.coords))) continue;
+      const lo = ftLvl(s.altitudeLow1), hi = ftLvl(s.altitudeHi1 || s.altitudeHi2);
+      out.push(`${s.airSigmetType === "SIGMET" && s.hazard === "CONVECTIVE" ? "Convective SIGMET" : s.airSigmetType} ${s.hazard || ""}${lo || hi ? ` ${lo || "SFC"}–${hi || "?"}` : ""}, until ${zt(s.validTimeTo)}`);
+    }
+    const seen = new Set();
+    for (const g of gair || []) {
+      if (g.geom !== "AREA" || !GA_NAME[g.hazard] || !Array.isArray(g.coords) || !pts.some((p) => inPoly(p, g.coords))) continue;
+      const key = g.product + g.hazard; if (seen.has(key)) continue; seen.add(key);
+      const lv = g.base || g.top ? ` ${ftLvl(g.base) || "SFC"}–${ftLvl(g.top) || "?"}` : "";
+      out.push(`G-AIRMET ${g.product[0] + g.product.slice(1).toLowerCase()}: ${GA_NAME[g.hazard]}${lv}${g.due_to ? " (" + g.due_to.toLowerCase() + ")" : ""}, valid ${zt(g.validTime)}`);
+    }
+    return out;
+  }
+  // GFS pressure levels from Open-Meteo, interpolated to 3,000–12,000 ft MSL.
+  const GFS_LV = [1000, 975, 950, 925, 900, 850, 800, 750, 700, 650, 600];
+  async function gfsAt(p) {
+    const vars = GFS_LV.flatMap((l) => ["temperature", "wind_speed", "wind_direction", "geopotential_height"].map((k) => `${k}_${l}hPa`)).join(",");
+    try {
+      const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 9000);
+      const r = await fetch(`https://api.open-meteo.com/v1/gfs?latitude=${p.lat.toFixed(3)}&longitude=${p.lon.toFixed(3)}&hourly=${vars}&wind_speed_unit=kn&forecast_days=3&timezone=GMT`, { signal: ctl.signal });
+      clearTimeout(t);
+      if (r.ok) return { data: await r.json(), live: true };
+    } catch (e) {}
+    // Fallback: the copy over KFPR published by the weather job, if the point is close to the home field.
+    if (p.home) { const d = await homeFile(HOME + "-gfs.json"); if (d) return { data: d, live: false }; }
+    return null;
+  }
+  function windsFromGfs(data, when) {
+    const h = data && data.hourly; if (!h || !h.time) return null;
+    let k = 0, best = 1e15;
+    h.time.forEach((t, i) => { const d = Math.abs(Date.parse(t + "Z") - when); if (d < best) { best = d; k = i; } });
+    if (best > 3 * 3600e3) return null;
+    const lv = GFS_LV.map((l) => {
+      const s = h[`wind_speed_${l}hPa`][k], d = h[`wind_direction_${l}hPa`][k];
+      return { z: h[`geopotential_height_${l}hPa`][k], T: h[`temperature_${l}hPa`][k], u: -s * Math.sin(d * Math.PI / 180), v: -s * Math.cos(d * Math.PI / 180) };
+    }).filter((x) => x.z !== null && x.T !== null && isFinite(x.u)).sort((a, b) => a.z - b.z);
+    const res = {};
+    for (const ft of LEVELS) {
+      const z = ft * 0.3048; let i = lv.findIndex((x) => x.z >= z);
+      if (i <= 0) { res[ft] = null; continue; }
+      const a = lv[i - 1], b = lv[i], f = (z - a.z) / (b.z - a.z);
+      const u = a.u + f * (b.u - a.u), v = a.v + f * (b.v - a.v), T = a.T + f * (b.T - a.T);
+      const spd = Math.hypot(u, v); let dir = Math.round(((Math.atan2(-u, -v) * 180 / Math.PI) + 360) % 360 / 10) * 10; if (dir === 0) dir = 360;
+      const t = Math.round(T);
+      res[ft] = { w: spd < 5 ? "Light & var." : `${String(dir).padStart(3, "0")}/${Math.round(spd)}`, t: (t > 0 ? "+" : "") + t };
+    }
+    res.time = Date.parse(h.time[k] + "Z");
+    return res;
+  }
+  function briefTime() {
+    const d = $("b_date").value, t = $("b_etd").value;
+    const ms = d ? Date.parse(d + "T" + (t || "12:00")) : NaN;
+    return isFinite(ms) && (d !== todayISO() || t) ? ms : Date.now();
+  }
+  async function coordsOf(icao, stations) {
+    const s = stations.find((x) => x && x.icaoId === icao && isFinite(x.lat));
+    if (s) return { lat: +s.lat, lon: +s.lon };
+    let old = {}; try { old = JSON.parse(localStorage.getItem("p2010-wx-" + icao)) || {}; } catch (e) {}
+    for (const o of [old.apt, old.met, old.taf]) if (o && isFinite(o.lat)) return { lat: +o.lat, lon: +o.lon };
+    if (navigator.onLine === false) return null;
+    const a = await getJSON("https://aviationweather.gov/api/data/airport?ids=" + icao + "&format=json").catch(() => null);
+    return a && a[0] && isFinite(a[0].lat) ? { lat: +a[0].lat, lon: +a[0].lon } : null;
+  }
+  let WSRC = {};
+  async function fillWindsAt(side, icao, stations) {
+    const p = await coordsOf(icao, stations); if (!p) return false;
+    p.home = icao === HOME || segInfo(p, HOME_PT, HOME_PT).d < 30;
+    const g = await gfsAt(p); if (!g) return false;
+    const w = windsFromGfs(g.data, briefTime()); if (!w) return false;
+    for (const l of LEVELS) { const v = w[l]; bSet(`b_w${l}_${side}d`, v ? v.w : "—"); bSet(`b_w${l}_${side}t`, v ? v.t : ""); }
+    WSRC[side] = { t: w.time, live: g.live, icao };
+    return true;
+  }
+  const HOME_PT = { lat: 27.4975, lon: -80.3726 };
+  function aloftNote() {
+    const s = Object.values(WSRC);
+    $("aloftNote").textContent = s.length
+      ? `Estimated from the GFS model (Open-Meteo) for ${[...new Set(s.map((x) => zt(x.t / 1000)))].join(", ")}, at the ETD on the date above. Not the official FB forecast: aviationweather.gov stopped publishing the wind/temp tables in 2026. Direction in degrees true, speed in knots, temperature in °C.`
+      : "Direction in degrees true, speed in knots, temperature in °C. Type an airport code above a column to fill it from the GFS model.";
+  }
+
   async function bFill(auto) {
     bDefaults();
     const up = (id) => $(id).value.trim().toUpperCase();
@@ -1573,15 +1705,19 @@ table.aloft td:first-child { font-weight: 500; white-space: nowrap; }
     bStatus("Fetching the weather…");
     $("bFill").disabled = true;
     const list = [...new Set([dep, dest, alt].filter(ok))];
-    const [wx, pir] = await Promise.all([
+    const [wx, pir, flMet, flTaf, sig, gair, aptHome] = await Promise.all([
       Promise.all(list.map((c) => wxFor(c).catch(() => ({ metar: "", taf: "" })))),
-      navigator.onLine === false ? null : fetch(HOME_DATA + HOME + "-pirep.txt?t=" + Date.now(), { cache: "no-store" }).then((r) => r.ok ? r.text() : null).catch(() => null)
+      navigator.onLine === false ? null : fetch(HOME_DATA + HOME + "-pirep.txt?t=" + Date.now(), { cache: "no-store" }).then((r) => r.ok ? r.text() : null).catch(() => null),
+      homeFile("FL-metar.json"), homeFile("FL-taf.json"), homeFile("sigmet.json"), homeFile("gairmet.json"), homeFile(HOME + "-airport.json")
     ]);
     const W = Object.fromEntries(list.map((c, i) => [c, wx[i]]));
     const msgs = [], miss = [];
     for (const [c, cur, fc] of [[dep, "b_cDep", "b_fDep"], [dest, "b_cArr", "b_fArr"], [alt, "b_cAlt", "b_fAlt"]]) {
       if (!ok(c)) continue;
       const w = W[c];
+      // The Florida-wide copy covers the airports the live feed or the relays did not answer for.
+      if (!w.metar) { const m = (flMet || []).find((x) => x.icaoId === c); if (m && m.rawOb) w.metar = m.rawOb; }
+      if (!w.taf) { const t = (flTaf || []).find((x) => x.icaoId === c); if (t && t.rawTAF) w.taf = tafLines(t.rawTAF); }
       if (w.metar) bSet(cur, w.metar); else miss.push(c + " METAR");
       if (w.taf) bSet(fc, w.taf); else miss.push(c + " TAF");
     }
@@ -1589,8 +1725,34 @@ table.aloft td:first-child { font-weight: 500; white-space: nowrap; }
     if (pir !== null) {
       const lines = pir.trim();
       bSet("b_pirep", lines ? lines : `None reported within 100 nm of ${HOME} in the last 3 h.`);
-      msgs.push("PIREPs near " + HOME);
+      msgs.push("PIREPs");
     }
+    // En-route and adverse conditions need the airports' positions.
+    const stations = [...(flMet || []), ...(flTaf || []), ...((aptHome || []).map((a) => ({ ...a, icaoId: a.icaoId || HOME })))];
+    const A = ok(dep) ? await coordsOf(dep, stations) : null;
+    const B = ok(dest) ? await coordsOf(dest, stations) : A;
+    if (A && B) {
+      const skip = [dep, dest];
+      const local = segInfo(B, A, A).d < 5;
+      const em = alongRoute(flMet, A, B, skip, 4).filter((s) => s.rawOb);
+      bSet("b_cEnr", em.length ? em.map((s) => s.rawOb).join("\n") : "No METAR station near the route.");
+      const et = alongRoute(flTaf, A, B, skip, 3).filter((s) => s.rawTAF);
+      bSet("b_fEnr", et.length ? et.map((s) => tafLines(s.rawTAF)).join("\n") : "No TAF near the route.");
+      if (em.length || et.length) msgs.push(`en-route ${[...new Set([...em, ...et].map((s) => s.icaoId))].join(", ")}${local ? " (within 25 nm, local flight)" : ""}`);
+      if (sig || gair) {
+        const hz = hazards(routePoints(A, B), sig, gair);
+        bSet("b_adv", hz.length ? hz.join("\n") : `No SIGMET or G-AIRMET over the route (checked ${zt(new Date())}).`);
+        msgs.push(hz.length ? hz.length + " advisories on the route" : "no advisories on the route");
+      }
+    } else if (ok(dep)) miss.push("airport positions (en-route)");
+    // Winds aloft at departure and destination (or the alternate on a local flight).
+    if (!$("b_loc1").value.trim() && ok(dep)) bSet("b_loc1", dep);
+    const second = ok(dest) && dest !== dep ? dest : ok(alt) ? alt : "";
+    if (!$("b_loc2").value.trim() && second) bSet("b_loc2", second);
+    WSRC = {};
+    const got = await Promise.all([1, 2].map((s) => { const c = up("b_loc" + s); return ok(c) ? fillWindsAt(s, c, stations).catch(() => false) : false; }));
+    if (got.some(Boolean)) msgs.push("winds aloft (GFS)"); else miss.push("winds aloft");
+    aloftNote();
     $("bFill").disabled = false;
     if (miss.length) msgs.push("not available: " + miss.join(", "));
     bStatus(list.length || pir ? "Filled: " + msgs.join(" · ") + (auto ? "" : ". Lines you typed yourself were kept.") : "Nothing to fetch: enter the airports first.", miss.length > 0);
@@ -1630,6 +1792,7 @@ table.aloft td:first-child { font-weight: 500; white-space: nowrap; }
       `<table style="margin-top:-1px"><colgroup><col style="width:16%"><col style="width:13%"><col style="width:16%"><col style="width:10%"><col style="width:13%"><col style="width:16%"><col></colgroup>` +
       `<tr class="band l"><th>Winds / temps aloft</th><th>Location</th><th>Dir. / speed</th><th>Temp</th><th>Location</th><th>Dir. / speed</th><th>Temp</th></tr>` +
       LEVELS.map((l) => `<tr class="bwind"><th>${l.toLocaleString("en-US")} ft</th><td>${loc(1)}</td><td>${v(`b_w${l}_1d`)}</td><td>${v(`b_w${l}_1t`)}</td><td>${loc(2)}</td><td>${v(`b_w${l}_2d`)}</td><td>${v(`b_w${l}_2t`)}</td></tr>`).join("") +
+      (WFIELDS.some((id) => $(id).value && $(id).value === BAUTO[id]) ? `<tr><td colspan="7" style="font-size:9px;color:#555">Winds and temperatures estimated from the GFS model (Open-Meteo), not an official FB forecast.</td></tr>` : "") +
       `</table>` +
       `<table style="margin-top:-1px"><colgroup><col style="width:16%"><col></colgroup>` +
       [["NOTAMs", "b_notam"], ["PIREPs", "b_pirep"], ["TFRs", "b_tfr"], ["ATC delays", "b_atc"], ["Notes", "b_notes"]].map(([k, id]) =>
@@ -1666,6 +1829,14 @@ table.aloft td:first-child { font-weight: 500; white-space: nowrap; }
     compute();
   });
   document.addEventListener("change", (e) => {
+    if (e.target.id === "b_loc1" || e.target.id === "b_loc2") {
+      const side = +e.target.id.slice(-1), c = e.target.value.trim().toUpperCase();
+      if (/^[A-Z0-9]{3,4}$/.test(c)) {
+        LEVELS.forEach((l) => { [`b_w${l}_${side}d`, `b_w${l}_${side}t`].forEach((id) => { if ($(id).value === (BAUTO[id] || "")) $(id).value = ""; }); });
+        homeFile("FL-metar.json").then((st) => fillWindsAt(side, c, st || [])).then((okk) => { aloftNote(); bSave(); if (!okk) bStatus("No winds aloft found for " + c + ".", true); });
+      }
+      return;
+    }
     if (e.target.id && e.target.id.startsWith("b_")) return;
     if (e.target.id === "acSel") selectAircraft(+e.target.value);
     if (e.target.id === "rwySel") applyRunway();
