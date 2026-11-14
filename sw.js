@@ -1,6 +1,6 @@
 // Offline support: the app files are served from the network when it answers (so updates arrive at once)
 // and from this cache when it does not. Weather requests are left to the page, which keeps its own last copy.
-const CACHE = "p2010-v1";
+const CACHE = "p2010-v2";
 const CORE = ["./", "index.html", "aircraft.js", "performance.js", "manifest.webmanifest", "icon-180.png", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", (e) => {

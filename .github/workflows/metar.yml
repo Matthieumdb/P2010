@@ -37,6 +37,10 @@ jobs:
           get "https://aviationweather.gov/api/data/metar?ids=KFPR&format=json&hours=3" KFPR-metar.json
           get "https://aviationweather.gov/api/data/airport?ids=KFPR&format=json" KFPR-airport.json
           get "https://aviationweather.gov/api/data/taf?ids=KFPR&format=json" KFPR-taf.json
+          # Briefing tab: FB winds aloft (6 h forecast, all CONUS stations) and PIREPs within 100 nm.
+          get "https://aviationweather.gov/api/data/windtemp?region=us&level=low&fcst=06" FB-us.txt
+          # An empty PIREP list is a valid answer, so no fallback to the previous copy here.
+          curl -fsS -A "$UA" --retry 4 --retry-all-errors --retry-delay 5 -m 30 "https://aviationweather.gov/api/data/pirep?id=KFPR&distance=100&age=3&format=raw" -o out/KFPR-pirep.txt || curl -fsS "$PREV/KFPR-pirep.txt" -o out/KFPR-pirep.txt || true
           date -u +%Y-%m-%dT%H:%M:%SZ > out/updated.txt
           head -c 300 out/KFPR-metar.json; echo
       - name: Publish to the metar-data branch
