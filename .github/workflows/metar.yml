@@ -38,6 +38,15 @@ jobs:
           get "https://aviationweather.gov/api/data/airport?ids=KFPR&format=json" KFPR-airport.json
           get "https://aviationweather.gov/api/data/taf?ids=KFPR&format=json" KFPR-taf.json
           # Briefing tab: PIREPs within 100 nm. (Wind/temp tables were retired by AWC in 2026 with the NAM model.)
+          # Briefing tab, en-route: every METAR and TAF in Florida, and the SIGMETs / G-AIRMETs for the adverse conditions.
+          BBOX="24,-88,31.5,-79.5"
+          get "https://aviationweather.gov/api/data/metar?bbox=$BBOX&format=json" FL-metar.json
+          get "https://aviationweather.gov/api/data/taf?bbox=$BBOX&format=json" FL-taf.json
+          get "https://aviationweather.gov/api/data/airsigmet?format=json" sigmet.json
+          get "https://aviationweather.gov/api/data/gairmet?format=json" gairmet.json
+          # Winds aloft over KFPR from the GFS model (fallback when the page cannot reach Open-Meteo itself).
+          V=""; for L in 1000 975 950 925 900 850 800 750 700 650 600; do V="$V,temperature_${L}hPa,wind_speed_${L}hPa,wind_direction_${L}hPa,geopotential_height_${L}hPa"; done
+          get "https://api.open-meteo.com/v1/gfs?latitude=27.4975&longitude=-80.3726&hourly=${V#,}&wind_speed_unit=kn&forecast_days=2&timezone=GMT" KFPR-gfs.json
           # An empty PIREP list is a valid answer, so no fallback to the previous copy here.
           curl -fsS -A "$UA" --retry 4 --retry-all-errors --retry-delay 5 -m 30 "https://aviationweather.gov/api/data/pirep?id=KFPR&distance=100&age=3&format=raw" -o out/KFPR-pirep.txt || curl -fsS "$PREV/KFPR-pirep.txt" -o out/KFPR-pirep.txt || true
           date -u +%Y-%m-%dT%H:%M:%SZ > out/updated.txt
