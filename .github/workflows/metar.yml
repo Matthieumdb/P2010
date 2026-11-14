@@ -37,15 +37,7 @@ jobs:
           get "https://aviationweather.gov/api/data/metar?ids=KFPR&format=json&hours=3" KFPR-metar.json
           get "https://aviationweather.gov/api/data/airport?ids=KFPR&format=json" KFPR-airport.json
           get "https://aviationweather.gov/api/data/taf?ids=KFPR&format=json" KFPR-taf.json
-          # Briefing tab: FB winds aloft (6 h forecast, all CONUS stations) and PIREPs within 100 nm.
-          # Winds aloft: the API refuses unknown parameters (400), so try from the most to the least specific query
-          # and log the error text of each refusal.
-          for Q in "region=mia&level=low&fcst=06" "region=mia&level=low" "region=mia" "level=low&fcst=06" ""; do
-            CODE=$(curl -sS -A "$UA" -m 30 -w "%{http_code}" "https://aviationweather.gov/api/data/windtemp?$Q" -o out/FB.txt || echo 000)
-            [ "$CODE" = 200 ] && grep -q "^ *FT  *3000" out/FB.txt && { echo "winds aloft: ?$Q"; break; }
-            echo "::warning::winds aloft ?$Q -> HTTP $CODE: $(head -c 200 out/FB.txt 2>/dev/null | tr '\n' ' ')"; rm -f out/FB.txt
-          done
-          [ -s out/FB.txt ] || curl -fsS "$PREV/FB.txt" -o out/FB.txt || true
+          # Briefing tab: PIREPs within 100 nm. (Wind/temp tables were retired by AWC in 2026 with the NAM model.)
           # An empty PIREP list is a valid answer, so no fallback to the previous copy here.
           curl -fsS -A "$UA" --retry 4 --retry-all-errors --retry-delay 5 -m 30 "https://aviationweather.gov/api/data/pirep?id=KFPR&distance=100&age=3&format=raw" -o out/KFPR-pirep.txt || curl -fsS "$PREV/KFPR-pirep.txt" -o out/KFPR-pirep.txt || true
           date -u +%Y-%m-%dT%H:%M:%SZ > out/updated.txt

@@ -593,19 +593,18 @@ table.aloft td:first-child { font-weight: 500; white-space: nowrap; }
         </div>
         <div>
           <div class="bhead"><h3>Winds and temperatures aloft</h3>
-            <div class="links"><a href="https://aviationweather.gov/windtemp/" target="_blank" rel="noopener">Winds aloft</a></div></div>
+            <div class="links"><a href="https://www.1800wxbrief.com/" target="_blank" rel="noopener">1800wxbrief</a></div></div>
           <div class="tbl-wrap">
             <table class="aloft">
               <thead>
-                <tr><th></th><th colspan="2"><input id="b_loc1" class="apt-in" list="fbList" type="text" maxlength="4" autocomplete="off" spellcheck="false" placeholder="Location" aria-label="Winds aloft location 1"></th>
-                  <th colspan="2"><input id="b_loc2" class="apt-in" list="fbList" type="text" maxlength="4" autocomplete="off" spellcheck="false" placeholder="Location" aria-label="Winds aloft location 2"></th></tr>
+                <tr><th></th><th colspan="2"><input id="b_loc1" class="apt-in" type="text" maxlength="4" autocomplete="off" spellcheck="false" placeholder="Location" aria-label="Winds aloft location 1"></th>
+                  <th colspan="2"><input id="b_loc2" class="apt-in" type="text" maxlength="4" autocomplete="off" spellcheck="false" placeholder="Location" aria-label="Winds aloft location 2"></th></tr>
                 <tr><th>Altitude</th><th>Dir / speed</th><th>Temp</th><th>Dir / speed</th><th>Temp</th></tr>
               </thead>
               <tbody id="aloftBody"></tbody>
             </table>
           </div>
-          <datalist id="fbList"></datalist>
-          <p class="hint" style="margin-top:8px" id="aloftNote">Pick a forecast station to fill its winds (FB winds aloft, 6-hour forecast). Direction in degrees true, speed in knots, temperature in °C.</p>
+          <p class="hint" style="margin-top:8px">Enter the stations and values from your briefing (1800wxbrief, for example). Direction in degrees true, speed in knots, temperature in °C.</p>
         </div>
       </div>
     </section>
@@ -1511,8 +1510,7 @@ table.aloft td:first-child { font-weight: 500; white-space: nowrap; }
     "b_notam", "b_pirep", "b_tfr", "b_atc", "b_notes"];
   const LEVELS = [3000, 6000, 9000, 12000];
   const WFIELDS = LEVELS.flatMap((l) => [1, 2].flatMap((s) => [`b_w${l}_${s}d`, `b_w${l}_${s}t`]));
-  const FB_NEAR = ["PBI", "MLB", "ORL", "MIA", "TPA", "JAX"];
-  let BAUTO = {}, FB = null, bAutoDone = false, curTab = "wb";
+  let BAUTO = {}, bAutoDone = false, curTab = "wb";
   $("aloftBody").innerHTML = LEVELS.map((l) => `<tr><td>${l.toLocaleString("en-US")} ft</td>` + [1, 2].map((s) =>
     `<td><input id="b_w${l}_${s}d" type="text" autocomplete="off" placeholder="ddd/kt" aria-label="Wind at ${l} ft, location ${s}"></td>` +
     `<td><input id="b_w${l}_${s}t" type="text" inputmode="numeric" autocomplete="off" placeholder="°C" aria-label="Temperature at ${l} ft, location ${s}"></td>`).join("") + "</tr>").join("");
@@ -1567,47 +1565,6 @@ table.aloft td:first-child { font-weight: 500; white-space: nowrap; }
     if (mets[0] || taf) { try { localStorage.setItem("p2010-wx-" + icao, JSON.stringify({ apt: old.apt || null, met, taf, saved: Date.now() })); } catch (e) {} }
     return { metar: met ? met.rawOb || "" : "", taf: taf ? tafLines(taf.rawTAF) : "" };
   }
-  // FB winds aloft (FD format): columns are right-aligned under the altitude header.
-  function parseFB(txt) {
-    const lines = String(txt || "").split(/\r?\n/);
-    const h = lines.findIndex((l) => /^\s*FT\s+3000/.test(l));
-    if (h < 0) return null;
-    const cols = []; const re = /\d{4,5}/g; let m;
-    while ((m = re.exec(lines[h]))) cols.push({ lvl: +m[0], end: m.index + m[0].length });
-    const st = {};
-    for (const l of lines.slice(h + 1)) {
-      const id = l.match(/^([A-Z0-9]{3})\s/); if (!id) continue;
-      const row = {}, tr = /\S+/g; tr.lastIndex = 4; let t;
-      while ((t = tr.exec(l))) {
-        const end = t.index + t[0].length; let best = null, bd = 99;
-        for (const c of cols) { const d = Math.abs(c.end - end); if (d < bd) { bd = d; best = c; } }
-        if (best && bd <= 3) row[best.lvl] = t[0];
-      }
-      st[id[1]] = row;
-    }
-    const v = String(txt).match(/VALID\s+(\d{6}Z)\s+FOR USE\s+(\d{4}-\d{4}Z)/);
-    return { st, valid: v ? `valid ${v[1]}, for use ${v[2]}` : "" };
-  }
-  function decodeFB(code) {
-    const m = String(code || "").match(/^(\d{2})(\d{2})([+-]\d{2})?$/);
-    if (!m) return null;
-    let d = +m[1] * 10, s = +m[2];
-    const t = m[3] ? +m[3] : null;
-    const temp = t === null ? "" : (t > 0 ? "+" : "") + t;
-    if (d === 990 && s === 0) return { w: "Light & var.", t: temp };
-    if (d > 360) { d -= 500; s += 100; }
-    return { w: `${String(d).padStart(3, "0")}/${s}`, t: temp };
-  }
-  function fillWinds(side) {
-    if (!FB) return false;
-    const loc = $("b_loc" + side).value.trim().toUpperCase(), row = FB.st[loc];
-    if (!row) return false;
-    for (const l of LEVELS) {
-      const v = decodeFB(row[l]);
-      bSet(`b_w${l}_${side}d`, v ? v.w : "—"); bSet(`b_w${l}_${side}t`, v ? v.t : "");
-    }
-    return true;
-  }
   async function bFill(auto) {
     bDefaults();
     const up = (id) => $(id).value.trim().toUpperCase();
@@ -1616,10 +1573,9 @@ table.aloft td:first-child { font-weight: 500; white-space: nowrap; }
     bStatus("Fetching the weather…");
     $("bFill").disabled = true;
     const list = [...new Set([dep, dest, alt].filter(ok))];
-    const [wx, pir, fb] = await Promise.all([
+    const [wx, pir] = await Promise.all([
       Promise.all(list.map((c) => wxFor(c).catch(() => ({ metar: "", taf: "" })))),
-      navigator.onLine === false ? null : fetch(HOME_DATA + HOME + "-pirep.txt?t=" + Date.now(), { cache: "no-store" }).then((r) => r.ok ? r.text() : null).catch(() => null),
-      navigator.onLine === false ? null : fetch(HOME_DATA + "FB.txt?t=" + Date.now(), { cache: "no-store" }).then((r) => r.ok ? r.text() : null).catch(() => null)
+      navigator.onLine === false ? null : fetch(HOME_DATA + HOME + "-pirep.txt?t=" + Date.now(), { cache: "no-store" }).then((r) => r.ok ? r.text() : null).catch(() => null)
     ]);
     const W = Object.fromEntries(list.map((c, i) => [c, wx[i]]));
     const msgs = [], miss = [];
@@ -1635,22 +1591,9 @@ table.aloft td:first-child { font-weight: 500; white-space: nowrap; }
       bSet("b_pirep", lines ? lines : `None reported within 100 nm of ${HOME} in the last 3 h.`);
       msgs.push("PIREPs near " + HOME);
     }
-    if (fb) {
-      FB = parseFB(fb);
-      if (FB) {
-        const ids = Object.keys(FB.st).sort();
-        $("fbList").innerHTML = ids.map((s) => `<option value="${s}">`).join("");
-        const near = FB_NEAR.filter((s) => FB.st[s]);
-        if (!$("b_loc1").value && near[0]) bSet("b_loc1", near[0]);
-        if (!$("b_loc2").value && near[1]) bSet("b_loc2", near.find((s) => s !== $("b_loc1").value.trim().toUpperCase()) || "");
-        const done = [1, 2].filter((s) => fillWinds(s));
-        if (done.length) msgs.push("winds aloft");
-        $("aloftNote").textContent = `FB winds aloft, 6-hour forecast${FB.valid ? " (" + FB.valid + ")" : ""}. Direction in degrees true, speed in knots, temperature in °C. Type another station code to change a column.`;
-      }
-    }
     $("bFill").disabled = false;
     if (miss.length) msgs.push("not available: " + miss.join(", "));
-    bStatus(list.length || fb || pir ? "Filled: " + msgs.join(" · ") + (auto ? "" : ". Lines you typed yourself were kept.") : "Nothing to fetch: enter the airports first.", miss.length > 0);
+    bStatus(list.length || pir ? "Filled: " + msgs.join(" · ") + (auto ? "" : ". Lines you typed yourself were kept.") : "Nothing to fetch: enter the airports first.", miss.length > 0);
     bSave();
   }
   let bNewArmed = 0;
@@ -1723,7 +1666,6 @@ table.aloft td:first-child { font-weight: 500; white-space: nowrap; }
     compute();
   });
   document.addEventListener("change", (e) => {
-    if (e.target.id === "b_loc1" || e.target.id === "b_loc2") { fillWinds(e.target.id.slice(-1)); bSave(); return; }
     if (e.target.id && e.target.id.startsWith("b_")) return;
     if (e.target.id === "acSel") selectAircraft(+e.target.value);
     if (e.target.id === "rwySel") applyRunway();
