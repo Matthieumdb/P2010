@@ -1619,7 +1619,7 @@ table.aloft td:first-child { font-weight: 500; white-space: nowrap; }
     const [wx, pir, fb] = await Promise.all([
       Promise.all(list.map((c) => wxFor(c).catch(() => ({ metar: "", taf: "" })))),
       navigator.onLine === false ? null : fetch(HOME_DATA + HOME + "-pirep.txt?t=" + Date.now(), { cache: "no-store" }).then((r) => r.ok ? r.text() : null).catch(() => null),
-      navigator.onLine === false ? null : fetch(HOME_DATA + "FB-us.txt?t=" + Date.now(), { cache: "no-store" }).then((r) => r.ok ? r.text() : null).catch(() => null)
+      navigator.onLine === false ? null : fetch(HOME_DATA + "FB.txt?t=" + Date.now(), { cache: "no-store" }).then((r) => r.ok ? r.text() : null).catch(() => null)
     ]);
     const W = Object.fromEntries(list.map((c, i) => [c, wx[i]]));
     const msgs = [], miss = [];
